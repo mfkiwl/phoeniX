@@ -256,8 +256,9 @@ module Arithmetic_Logic_Unit
         endcase    
     end
 
-    always @(posedge adder_enable) 
+    always @(*) 
     begin
+        if (adder_enable)
         case (control_status_register[2 : 1])
             2'b00:   begin adder_0_enable = 1'b1; adder_1_enable = 1'b0; adder_2_enable = 1'b0; adder_3_enable = 1'b0; end
             2'b01:   begin adder_0_enable = 1'b0; adder_1_enable = 1'b1; adder_2_enable = 1'b0; adder_3_enable = 1'b0; end
@@ -265,6 +266,7 @@ module Arithmetic_Logic_Unit
             2'b11:   begin adder_0_enable = 1'b0; adder_1_enable = 1'b0; adder_2_enable = 1'b0; adder_3_enable = 1'b1; end 
             default: begin adder_0_enable = 1'b1; adder_1_enable = 1'b0; adder_2_enable = 1'b0; adder_3_enable = 1'b0; end
         endcase
+        else begin adder_0_enable = 1'b0; adder_1_enable = 1'b0; adder_2_enable = 1'b0; adder_3_enable = 1'b0; end
     end
 
     assign adder_result =   (adder_0_enable) ? adder_0_result :

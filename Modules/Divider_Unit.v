@@ -272,9 +272,9 @@ module Divider_Unit
                 .enable(divider_0_enable),
                 .divider_input_1(divider_input_1),
                 .divider_input_2(divider_input_2),
-                .divider_0_result(divider_0_result),
-                .divider_0_remainder(divider_0_remainder),
-                .divider_0_busy(divider_0_busy)
+                .divider_result(divider_0_result),
+                .divider_remainder(divider_0_remainder),
+                .divider_busy(divider_0_busy)
             );
             //----------------------------------
             // End of Circuit 1 instantiation
@@ -720,19 +720,32 @@ module sample_divider
     input wire enable,
     input wire [31 : 0] divider_input_1,
     input wire [31 : 0] divider_input_2,
-    output reg [31 : 0] divider_0_result,
-    output reg [31 : 0] divider_0_remainder,
-    output reg divider_0_busy
+    output reg [31 : 0] divider_result,
+    output reg [31 : 0] divider_remainder,
+    output reg divider_busy
 );
-    always @(posedge clk) 
-    begin
-        if (enable)
-        begin 
-            divider_0_busy = 1;
-            repeat (8) @(posedge clk);
-            divider_0_result    = divider_input_1 / divider_input_2;
-            divider_0_remainder = divider_input_1 % divider_input_2;
-            divider_0_busy = 0;
-        end 
-    end
+	 reg [2 : 0] count;
+	 
+	 always @(posedge clk) 
+	 begin
+		  if (~enable)	
+		  begin
+			   count <= 3'd0;
+				divider_busy <= 1'b0;
+		  end
+		  
+		  else if (count == 3'd7)
+		  begin
+		      count <= 3'd0;
+				divider_result <= divider_input_1 / divider_input_2;
+				divider_remainder <= divider_input_1 % divider_input_2;
+				divider_busy <= 1'b0;
+		  end
+		  
+		  else
+		  begin 
+				divider_busy <= 1;
+				count <= count + 3'd1;
+		  end 
+	 end
 endmodule
