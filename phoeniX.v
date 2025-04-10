@@ -13,6 +13,7 @@
 `include "Instruction_Decoder.v"
 `include "Immediate_Generator.v"
 `include "Register_File.v"
+`include "Register_Loading_Table.v"
 `include "Arithmetic_Logic_Unit.v"
 `include "Jump_Branch_Unit.v"
 `include "Address_Generator.v"
@@ -25,9 +26,11 @@
 
 module phoeniX 
 #(
-    parameter RESET_ADDRESS = 32'h0000_0000,
-    parameter M_EXTENSION   = 1'b1,
-    parameter E_EXTENSION   = 1'b0
+    parameter   RESET_ADDRESS               = 32'h0000_0000,
+    parameter   DATA_SECTION_START_ADDRESS  = 32'hXXXX_XXXX,
+    parameter   DATA_SECTION_END_ADDRESS    = 32'hXXXX_XXXX,
+    parameter   M_EXTENSION                 = 1'b1,
+    parameter   E_EXTENSION                 = 1'b0
 ) 
 (
     input           clk,
@@ -70,15 +73,15 @@ module phoeniX
     // ------------------------
     Fetch_Unit fetch_unit
     (
-        .enable(!reset && !(|stall_condition[1 : 2])),              
+        .enable                         (   !reset && !(|stall_condition[1 : 2])        ),              
         
-        .pc(pc_FD_reg),
-        .next_pc(next_pc_FD_wire),
+        .pc                             (   pc_FD_reg                                   ),
+        .next_pc                        (   next_pc_FD_wire                             ),
 
-        .memory_interface_enable(instruction_memory_interface_enable),
-        .memory_interface_state(instruction_memory_interface_state),
-        .memory_interface_address(instruction_memory_interface_address),
-        .memory_interface_frame_mask(instruction_memory_interface_frame_mask)    
+        .memory_interface_enable        (   instruction_memory_interface_enable         ),
+        .memory_interface_state         (   instruction_memory_interface_state          ),
+        .memory_interface_address       (   instruction_memory_interface_address        ),
+        .memory_interface_frame_mask    (   instruction_memory_interface_frame_mask     )    
     );
 
     wire [31 : 0] address_EX_wire;
@@ -141,25 +144,25 @@ module phoeniX
     // ---------------------------------
     Instruction_Decoder instruction_decoder
     (
-        .instruction(instruction_FD_reg),
+        .instruction        (   instruction_FD_reg          ),
 
-        .instruction_type(instruction_type_FD_wire),
-        .opcode(opcode_FD_wire),
-        .funct3(funct3_FD_wire),
-        .funct7(funct7_FD_wire),
-        .funct12(funct12_FD_wire),
+        .instruction_type   (   instruction_type_FD_wire    ),
+        .opcode             (   opcode_FD_wire              ),
+        .funct3             (   funct3_FD_wire              ),
+        .funct7             (   funct7_FD_wire              ),
+        .funct12            (   funct12_FD_wire             ),
 
-        .read_index_1(read_index_1_FD_wire),
-        .read_index_2(read_index_2_FD_wire),
-        .write_index(write_index_FD_wire),
-        .csr_index(csr_index_FD_wire),
+        .read_index_1       (   read_index_1_FD_wire        ),
+        .read_index_2       (   read_index_2_FD_wire        ),
+        .write_index        (   write_index_FD_wire         ),
+        .csr_index          (   csr_index_FD_wire           ),
 
-        .read_enable_1(read_enable_1_FD_wire),
-        .read_enable_2(read_enable_2_FD_wire),
-        .write_enable(write_enable_FD_wire),
+        .read_enable_1      (   read_enable_1_FD_wire       ),
+        .read_enable_2      (   read_enable_2_FD_wire       ),
+        .write_enable       (   write_enable_FD_wire        ),
 
-        .read_enable_csr(read_enable_csr_FD_wire),
-        .write_enable_csr(write_enable_csr_FD_wire)
+        .read_enable_csr    (   read_enable_csr_FD_wire     ),
+        .write_enable_csr   (   write_enable_csr_FD_wire    )
     );
 
     // ---------------------------------
@@ -167,9 +170,9 @@ module phoeniX
     // --------------------------------- 
     Immediate_Generator immediate_generator
     (
-        .instruction(instruction_FD_reg[31 : 7]),
-        .instruction_type(instruction_type_FD_wire),
-        .immediate(immediate_FD_wire)
+        .instruction        (   instruction_FD_reg[31 : 7]  ),
+        .instruction_type   (   instruction_type_FD_wire    ),
+        .immediate          (   immediate_FD_wire           )
     );
 
     // ----------------------------------------------------------------------
@@ -297,20 +300,20 @@ module phoeniX
     Arithmetic_Logic_Unit
     #(
         .GENERATE_CIRCUIT_1(1),
-        .GENERATE_CIRCUIT_2(0),
+        .GENERATE_CIRCUIT_2(1),
         .GENERATE_CIRCUIT_3(0),
         .GENERATE_CIRCUIT_4(0)
     )  
     arithmetic_logic_unit
     (
-        .opcode(opcode_EX_reg),
-        .funct3(funct3_EX_reg),
-        .funct7(funct7_EX_reg),
-        .control_status_register(alucsr_wire),    
-        .rs1(rs1_EX_reg),
-        .rs2(rs2_EX_reg),
-        .immediate(immediate_EX_reg),
-        .alu_output(alu_output_EX_wire)
+        .opcode                     (   opcode_EX_reg       ),
+        .funct3                     (   funct3_EX_reg       ),
+        .funct7                     (   funct7_EX_reg       ),
+        .control_status_register    (   alucsr_wire         ),    
+        .rs1                        (   rs1_EX_reg          ),
+        .rs2                        (   rs2_EX_reg          ),
+        .immediate                  (   immediate_EX_reg    ),
+        .alu_output                 (   alu_output_EX_wire  )
     );
 
     // -------------------------------------
@@ -320,22 +323,22 @@ module phoeniX
     begin : M_EXTENSION_Generate_Block
         Multiplier_Unit
         #(
-            .GENERATE_CIRCUIT_1(1),
-            .GENERATE_CIRCUIT_2(0),
+            .GENERATE_CIRCUIT_1(0),
+            .GENERATE_CIRCUIT_2(1),
             .GENERATE_CIRCUIT_3(0),
             .GENERATE_CIRCUIT_4(0)
         ) 
         multiplier_unit
         (
-            .clk(clk),
-            .opcode(opcode_EX_reg),
-            .funct3(funct3_EX_reg),
-            .funct7(funct7_EX_reg),
-            .control_status_register(mulcsr_wire),    
-            .rs1(rs1_EX_reg),
-            .rs2(rs2_EX_reg),
-            .multiplier_unit_busy(mul_busy_EX_wire),
-            .multiplier_unit_output(mul_output_EX_wire)
+            .clk                        (   clk                 ),
+            .opcode                     (   opcode_EX_reg       ),
+            .funct3                     (   funct3_EX_reg       ),
+            .funct7                     (   funct7_EX_reg       ),
+            .control_status_register    (   mulcsr_wire         ),    
+            .rs1                        (   rs1_EX_reg          ),
+            .rs2                        (   rs2_EX_reg          ),
+            .multiplier_unit_busy       (   mul_busy_EX_wire    ),
+            .multiplier_unit_output     (   mul_output_EX_wire  )
         );
 
         Divider_Unit
@@ -347,15 +350,15 @@ module phoeniX
         ) 
         divider_unit
         (
-            .clk(clk),
-            .opcode(opcode_EX_reg),
-            .funct3(funct3_EX_reg),
-            .funct7(funct7_EX_reg),
-            .control_status_register(divcsr_wire),    
-            .rs1(rs1_EX_reg),
-            .rs2(rs2_EX_reg),
-            .divider_unit_busy(div_busy_EX_wire),
-            .divider_unit_output(div_output_EX_wire)
+            .clk                        (   clk                 ),
+            .opcode                     (   opcode_EX_reg       ),
+            .funct3                     (   funct3_EX_reg       ),
+            .funct7                     (   funct7_EX_reg       ),
+            .control_status_register    (   divcsr_wire         ),    
+            .rs1                        (   rs1_EX_reg          ),
+            .rs2                        (   rs2_EX_reg          ),
+            .divider_unit_busy          (   div_busy_EX_wire    ),
+            .divider_unit_output        (   div_output_EX_wire  )
         );
     end
     endgenerate
@@ -365,11 +368,11 @@ module phoeniX
     // ------------------------------------
     Address_Generator address_generator
     (
-        .opcode(opcode_EX_reg),
-        .rs1(rs1_EX_reg),
-        .pc(pc_EX_reg),
-        .immediate(immediate_EX_reg),
-        .address(address_EX_wire)
+        .opcode             (   opcode_EX_reg       ),
+        .rs1                (   rs1_EX_reg          ),
+        .pc                 (   pc_EX_reg           ),
+        .immediate          (   immediate_EX_reg    ),
+        .address            (   address_EX_wire     )
     );
 
     // ------------------------------
@@ -377,12 +380,12 @@ module phoeniX
     // ------------------------------
     Jump_Branch_Unit jump_branch_unit
     (
-        .opcode(opcode_EX_reg),
-        .funct3(funct3_EX_reg),
-        .instruction_type(instruction_type_EX_reg),
-        .rs1(rs1_EX_reg),
-        .rs2(rs2_EX_reg),
-        .jump_branch_enable(jump_branch_enable_EX_wire)
+        .opcode             (   opcode_EX_reg               ),
+        .funct3             (   funct3_EX_reg               ),
+        .instruction_type   (   instruction_type_EX_reg     ),
+        .rs1                (   rs1_EX_reg                  ),
+        .rs2                (   rs2_EX_reg                  ),
+        .jump_branch_enable (   jump_branch_enable_EX_wire  )
     );
 
     // ---------------------------------
@@ -390,15 +393,15 @@ module phoeniX
     // ---------------------------------
     Control_Status_Unit control_status_unit
     (
-        .opcode(opcode_EX_reg),
-        .funct3(funct3_EX_reg),
+        .opcode                 (   opcode_EX_reg           ),
+        .funct3                 (   funct3_EX_reg           ),
 
-        .CSR_in(csr_data_EX_reg),
-        .rs1(rs1_EX_reg),
-        .unsigned_immediate(read_index_1_EX_reg),
+        .CSR_in                 (   csr_data_EX_reg         ),
+        .rs1                    (   rs1_EX_reg              ),
+        .unsigned_immediate     (   read_index_1_EX_reg     ),
 
-        .rd(csr_rd_EX_wire),
-        .CSR_out(csr_data_out_EX_wire)
+        .rd                     (   csr_rd_EX_wire          ),
+        .CSR_out                (   csr_data_out_EX_wire    )
     );
 
     // ----------------------------------------
@@ -500,17 +503,17 @@ module phoeniX
     // -----------------------------
     Load_Store_Unit load_store_unit
     (
-        .opcode(opcode_MW_reg),
-        .funct3(funct3_MW_reg),
-        .address(address_MW_reg),
-        .store_data(rs2_MW_reg),
-        .load_data(load_data_MW_wire),
+        .opcode                         (   opcode_MW_reg                       ),
+        .funct3                         (   funct3_MW_reg                       ),
+        .address                        (   address_MW_reg                      ),
+        .store_data                     (   rs2_MW_reg                          ),
+        .load_data                      (   load_data_MW_wire                   ),
 
-        .memory_interface_enable(data_memory_interface_enable),
-        .memory_interface_state(data_memory_interface_state),
-        .memory_interface_address(data_memory_interface_address),
-        .memory_interface_frame_mask(data_memory_interface_frame_mask),
-        .memory_interface_data(data_memory_interface_data)
+        .memory_interface_enable        (   data_memory_interface_enable        ),
+        .memory_interface_state         (   data_memory_interface_state         ),
+        .memory_interface_address       (   data_memory_interface_address       ),
+        .memory_interface_frame_mask    (   data_memory_interface_frame_mask    ),
+        .memory_interface_data          (   data_memory_interface_data          )
     );
     
     // ---------------------------------------------------------------
@@ -537,52 +540,47 @@ module phoeniX
     //////////////////////////////////////
     Hazard_Forward_Unit hazard_forward_unit_source_1
     (
-        .source_index(read_index_1_FD_wire),
+        .source_index           (   read_index_1_FD_wire                                ),
         
-        .destination_index_1(write_index_EX_reg),
-        .destination_index_2(write_index_MW_reg),
+        .destination_index_1    (   write_index_EX_reg                                  ),
+        .destination_index_2    (   write_index_MW_reg                                  ),
 
-        .data_1(    opcode_EX_reg == `LUI      ? immediate_EX_reg : 
-                    opcode_EX_reg == `AUIPC    ? address_EX_wire  : 
-                    opcode_EX_reg == `SYSTEM   ? csr_rd_EX_wire   : 
-                    execution_result_EX_reg
-                ),
+        .data_1                 (   opcode_EX_reg == `LUI      ? immediate_EX_reg : 
+                                    opcode_EX_reg == `AUIPC    ? address_EX_wire  : 
+                                    opcode_EX_reg == `SYSTEM   ? csr_rd_EX_wire   : 
+                                    execution_result_EX_reg                             ),
+        .data_2                 (   write_data_MW_reg                                   ),
 
-        .data_2(write_data_MW_reg),
+        .enable_1               (   write_enable_EX_reg                                 ),
+        .enable_2               (   write_enable_MW_reg                                 ),
 
-        .enable_1(write_enable_EX_reg),
-        .enable_2(write_enable_MW_reg),
-
-        .forward_enable(FW_enable_1),
-        .forward_data(FW_source_1)
+        .forward_enable         (   FW_enable_1                                         ),
+        .forward_data           (   FW_source_1                                         )
     );
 
     Hazard_Forward_Unit hazard_forward_unit_source_2
     (
-        .source_index(read_index_2_FD_wire),
+        .source_index           (   read_index_2_FD_wire                                ),
         
-        .destination_index_1(write_index_EX_reg),
-        .destination_index_2(write_index_MW_reg),
+        .destination_index_1    (   write_index_EX_reg                                  ),
+        .destination_index_2    (   write_index_MW_reg                                  ),
 
-        .data_1(    opcode_EX_reg == `LUI      ? immediate_EX_reg : 
-                    opcode_EX_reg == `AUIPC    ? address_EX_wire  : 
-                    opcode_EX_reg == `SYSTEM   ? csr_rd_EX_wire   : 
-                    execution_result_EX_reg
-                ),
+        .data_1                 (   opcode_EX_reg == `LUI      ? immediate_EX_reg : 
+                                    opcode_EX_reg == `AUIPC    ? address_EX_wire  : 
+                                    opcode_EX_reg == `SYSTEM   ? csr_rd_EX_wire   : 
+                                    execution_result_EX_reg                             ),
+        .data_2                 (   write_data_MW_reg                                   ),
 
-        .data_2(write_data_MW_reg),
+        .enable_1               (   write_enable_EX_reg                                 ),
+        .enable_2               (   write_enable_MW_reg                                 ),
 
-        .enable_1(write_enable_EX_reg),
-        .enable_2(write_enable_MW_reg),
-
-        .forward_enable(FW_enable_2),
-        .forward_data(FW_source_2)
+        .forward_enable         (   FW_enable_2                                         ),
+        .forward_data           (   FW_source_2                                         )
     );
 
     ////////////////////////////////////
     //          Bubble Unit           //
     ////////////////////////////////////    
-
     always @(*) 
     begin
         if (mul_busy_EX_wire || div_busy_EX_wire)
@@ -610,48 +608,71 @@ module phoeniX
     )
     register_file
     (
-        .clk(clk),
-        .reset(reset),
+        .clk            (   clk                     ),
+        .reset          (   reset                   ),
 
-        .read_enable_1(read_enable_1_FD_wire),
-        .read_enable_2(read_enable_2_FD_wire),
-        .write_enable(write_enable_MW_reg),
+        .read_enable_1  (   read_enable_1_FD_wire   ),
+        .read_enable_2  (   read_enable_2_FD_wire   ),
+        .write_enable   (   write_enable_MW_reg     ),
 
-        .read_index_1(read_index_1_FD_wire),
-        .read_index_2(read_index_2_FD_wire),
-        .write_index(write_index_MW_reg),
+        .read_index_1   (   read_index_1_FD_wire    ),
+        .read_index_2   (   read_index_2_FD_wire    ),
+        .write_index    (   write_index_MW_reg      ),
 
-        .write_data(write_data_MW_reg),
-        .read_data_1(RF_source_1),
-        .read_data_2(RF_source_2)
+        .write_data     (   write_data_MW_reg       ),
+        .read_data_1    (   RF_source_1             ),
+        .read_data_2    (   RF_source_2             )
     );
 
+    ///////////////////////////////////
+    //    Register Loading Table     //
+    ///////////////////////////////////
+    Register_Loading_Table
+    #(
+        .WIDTH(32),
+        .DEPTH(5)
+    )
+    register_loading_table
+    (
+        .clk            (   clk                     ),
+        .reset          (   reset                   ),
+        
+        .read_enable    (                           ),
+        .write_enable   (   write_enable_MW_reg     ),
+
+        .read_index     (                           ),
+        .write_index    (   write_index_MW_reg      ),
+        
+        .write_data     (   address_MW_reg          ),
+        .read_data      (                           )
+    );
+    
     ///////////////////////////////////////////////////////
     //    Control Status Register File Instantiation     //
     ///////////////////////////////////////////////////////
     Control_Status_Register_File control_status_register_file
     (
-        .clk(clk),
-        .reset(reset),
+        .clk                (   clk                         ),
+        .reset              (   reset                       ),
 
-        .opcode(opcode_MW_reg),
-        .funct3(funct3_MW_reg),
-        .funct7(funct7_MW_reg),
-        .funct12(funct12_MW_reg),
-        .write_index(write_index_MW_reg),
+        .opcode             (   opcode_MW_reg               ),
+        .funct3             (   funct3_MW_reg               ),
+        .funct7             (   funct7_MW_reg               ),
+        .funct12            (   funct12_MW_reg              ),
+        .write_index        (   write_index_MW_reg          ),
 
-        .read_enable_csr(read_enable_csr_FD_wire),
-        .write_enable_csr(write_enable_csr_EX_reg),
+        .read_enable_csr    (   read_enable_csr_FD_wire     ),
+        .write_enable_csr   (   write_enable_csr_EX_reg     ),
 
-        .csr_read_index(csr_index_FD_wire),
-        .csr_write_index(csr_index_EX_reg),
+        .csr_read_index     (   csr_index_FD_wire           ),
+        .csr_write_index    (   csr_index_EX_reg            ),
 
-        .csr_write_data(csr_data_out_EX_wire),
-        .csr_read_data(csr_data_FD_wire),
+        .csr_write_data     (   csr_data_out_EX_wire        ),
+        .csr_read_data      (   csr_data_FD_wire            ),
 
-        .alucsr_wire(alucsr_wire),
-        .mulcsr_wire(mulcsr_wire),
-        .divcsr_wire(divcsr_wire)
+        .alucsr_wire        (   alucsr_wire                 ),
+        .mulcsr_wire        (   mulcsr_wire                 ),
+        .divcsr_wire        (   divcsr_wire                 )
     );
 
 endmodule
