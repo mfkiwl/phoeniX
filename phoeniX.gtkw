@@ -1,15 +1,15 @@
 [*]
 [*] GTKWave Analyzer v3.3.103 (w)1999-2019 BSI
-[*] Thu Apr 10 19:50:48 2025
+[*] Mon Apr 14 20:53:06 2025
 [*]
-[dumpfile] "/home/faraz/git/phoeniX-Digital-Design/phoeniX/phoeniX.vcd"
-[dumpfile_mtime] "Thu Apr 10 19:44:10 2025"
-[dumpfile_size] 13265677
-[savefile] "/home/faraz/git/phoeniX-Digital-Design/phoeniX/phoeniX.gtkw"
+[dumpfile] "/home/faraz/git/phoeniX/phoeniX.vcd"
+[dumpfile_mtime] "Mon Apr 14 20:50:58 2025"
+[dumpfile_size] 3846511
+[savefile] "/home/faraz/git/phoeniX/phoeniX.gtkw"
 [timestart] 0
 [size] 1848 1016
 [pos] -1 -1
-*-10.727215 422 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-3.999429 83 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] phoeniX_Testbench.
 [treeopen] phoeniX_Testbench.uut.fetch_unit.
 [treeopen] phoeniX_Testbench.uut.load_store_unit.
@@ -47,50 +47,62 @@ phoeniX_Testbench.uut.instruction_memory_interface_frame_mask[3:0]
 phoeniX_Testbench.uut.instruction_memory_interface_data[31:0]
 @200
 -
--FETCH/DECODE
+-FETCH
+-
+@22
+phoeniX_Testbench.uut.pc_FE_reg[31:0]
+phoeniX_Testbench.uut.next_pc_FE_wire[31:0]
+phoeniX_Testbench.uut.pc_write_value[31:0]
+phoeniX_Testbench.uut.instruction[31:0]
+@200
+-
+-DECODE
 -
 @28
 phoeniX_Testbench.uut.clk
+@22
+phoeniX_Testbench.uut.pc_DE_reg[31:0]
 @1001200
 -group_end
 @22
-phoeniX_Testbench.uut.pc_FD_reg[31:0]
-phoeniX_Testbench.uut.next_pc_FD_wire[31:0]
+phoeniX_Testbench.uut.next_pc_DE_reg[31:0]
 @200
 -
 @22
-phoeniX_Testbench.uut.instruction_FD_reg[31:0]
+phoeniX_Testbench.uut.instruction_DE_reg[31:0]
 @28
-phoeniX_Testbench.uut.instruction_type_FD_wire[2:0]
-@200
--
-@28
-phoeniX_Testbench.uut.opcode_FD_wire[6:0]
-phoeniX_Testbench.uut.funct3_FD_wire[2:0]
-phoeniX_Testbench.uut.funct7_FD_wire[6:0]
-phoeniX_Testbench.uut.funct12_FD_wire[11:0]
+phoeniX_Testbench.uut.instruction_type_DE_wire[2:0]
 @200
 -
 @22
-phoeniX_Testbench.uut.immediate_FD_wire[31:0]
+phoeniX_Testbench.uut.opcode_DE_wire[6:0]
+@28
+phoeniX_Testbench.uut.funct3_DE_wire[2:0]
+@22
+phoeniX_Testbench.uut.funct7_DE_wire[6:0]
+phoeniX_Testbench.uut.funct12_DE_wire[11:0]
 @200
 -
-@24
-phoeniX_Testbench.uut.read_index_1_FD_wire[4:0]
-@28
-phoeniX_Testbench.uut.read_enable_1_FD_wire
+@22
+phoeniX_Testbench.uut.immediate_DE_wire[31:0]
 @200
 -
-@24
-phoeniX_Testbench.uut.read_index_2_FD_wire[4:0]
+@22
+phoeniX_Testbench.uut.read_index_1_DE_wire[4:0]
 @28
-phoeniX_Testbench.uut.read_enable_2_FD_wire
+phoeniX_Testbench.uut.read_enable_1_DE_wire
 @200
 -
-@24
-phoeniX_Testbench.uut.write_index_FD_wire[4:0]
+@22
+phoeniX_Testbench.uut.read_index_2_DE_wire[4:0]
 @28
-phoeniX_Testbench.uut.write_enable_FD_wire
+phoeniX_Testbench.uut.read_enable_2_DE_wire
+@200
+-
+@22
+phoeniX_Testbench.uut.write_index_DE_wire[4:0]
+@28
+phoeniX_Testbench.uut.write_enable_DE_wire
 @200
 -
 @22
@@ -99,7 +111,7 @@ phoeniX_Testbench.uut.FW_source_1[31:0]
 @28
 phoeniX_Testbench.uut.FW_enable_1
 @22
-phoeniX_Testbench.uut.rs1_FD_wire[31:0]
+phoeniX_Testbench.uut.rs1_DE_wire[31:0]
 @200
 -
 @22
@@ -108,17 +120,15 @@ phoeniX_Testbench.uut.FW_source_2[31:0]
 @28
 phoeniX_Testbench.uut.FW_enable_2
 @22
-phoeniX_Testbench.uut.rs2_FD_wire[31:0]
+phoeniX_Testbench.uut.rs2_DE_wire[31:0]
 @200
 -
 @22
-phoeniX_Testbench.uut.csr_index_FD_wire[11:0]
+phoeniX_Testbench.uut.csr_index_DE_wire[11:0]
+phoeniX_Testbench.uut.csr_data_DE_wire[31:0]
 @28
-phoeniX_Testbench.uut.read_enable_csr_FD_wire
-@22
-phoeniX_Testbench.uut.csr_data_FD_wire[31:0]
-@28
-phoeniX_Testbench.uut.write_enable_csr_FD_wire
+phoeniX_Testbench.uut.read_enable_csr_DE_wire
+phoeniX_Testbench.uut.write_enable_csr_DE_wire
 @200
 -
 -EXECUTE
@@ -179,9 +189,8 @@ phoeniX_Testbench.uut.rs1_EX_reg[31:0]
 phoeniX_Testbench.uut.rs2_EX_reg[31:0]
 @200
 -
-@22
+@25
 phoeniX_Testbench.uut.write_index_EX_reg[4:0]
-@28
 phoeniX_Testbench.uut.write_enable_EX_reg
 @200
 -
@@ -244,6 +253,9 @@ phoeniX_Testbench.uut.write_index_MW_reg[4:0]
 phoeniX_Testbench.uut.write_enable_MW_reg
 @200
 -
+@22
+phoeniX_Testbench.uut.address_MW_reg[31:0]
+@200
 -
 @22
 phoeniX_Testbench.uut.load_store_unit.load_data[31:0]
@@ -314,6 +326,7 @@ phoeniX_Testbench.x31_t6[31:0]
 -
 @22
 phoeniX_Testbench.uut.register_loading_table.write_data[31:0]
+@24
 phoeniX_Testbench.uut.register_loading_table.write_index[4:0]
 @28
 phoeniX_Testbench.uut.register_loading_table.write_enable
@@ -338,9 +351,7 @@ phoeniX_Testbench.ls_x14_a4[31:0]
 phoeniX_Testbench.ls_x15_a5[31:0]
 phoeniX_Testbench.ls_x16_a6[31:0]
 phoeniX_Testbench.ls_x17_a7[31:0]
-@23
 phoeniX_Testbench.ls_x18_s2[31:0]
-@22
 phoeniX_Testbench.ls_x19_s3[31:0]
 phoeniX_Testbench.ls_x20_s4[31:0]
 phoeniX_Testbench.ls_x21_s5[31:0]
