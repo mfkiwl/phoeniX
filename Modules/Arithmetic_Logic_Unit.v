@@ -2,7 +2,7 @@
 //  A Reconfigurable Embedded Platform for Approximate Computing and Fault-Tolerant Applications
 
 //  Description: Arithmetic Logic Unit (ALU) Module
-//  Copyright 2024 Iran University of Science and Technology. <phoenix.digital.electronics@gmail.com>
+//  Copyright 2025 Iran University of Science and Technology. <phoenix.digital.electronics@gmail.com>
 
 //  Permission to use, copy, modify, and/or distribute this software for any
 //  purpose with or without fee is hereby granted, provided that the above
@@ -35,10 +35,10 @@
         Input:  control_status_register = {control_status_register[USER_ERROR_LEN:3], control_status_register[2:1] (module select), control_status_register[0]}
         Input:  adder_input_1 = First operand of your module
         Input:  adder_input_2 = Second operand of your module
-        Input:  adder_Cin     = Input Carry
+        Input:  adder_C_in     = Input Carry
         Output: adder_result  = Module output
     ==========================================================================================================================
-    - This unit executes R-Type, I-Type and J-Type instructions
+    - This unit executes R-Type and I-Type instructions
     - Inputs `rs1`, `rs2` comes from `Register_File` (DATA BUS)
     - Input `immediate` comes from `Immediate_Generator`
     - Input signals `opcode`, `funct3`, `funct7`, comes from `Instruction_Decoder`
@@ -54,220 +54,120 @@ module Arithmetic_Logic_Unit
     parameter GENERATE_CIRCUIT_4 = 0
 )
 (
-    input wire [ 6 : 0] opcode,               
-    input wire [ 2 : 0] funct3,               
-    input wire [ 6 : 0] funct7,               
+    input   wire [ 6 : 0] opcode,               
+    input   wire [ 2 : 0] funct3,               
+    input   wire [ 6 : 0] funct7,               
 
-    input wire [31 : 0] control_status_register,    
+    input   wire [31 : 0] control_status_register,    
 
-    input wire [31 : 0] rs1,                 
-    input wire [31 : 0] rs2,                 
-    input wire [31 : 0] immediate,           
+    input   wire [31 : 0] rs1,                 
+    input   wire [31 : 0] rs2,                 
+    input   wire [31 : 0] immediate,           
 
-    output reg [31 : 0] alu_output      
+    output  wire [31 : 0] alu_output      
 );
-    reg alu_enable;
 
-    reg  [31 : 0] operand_1; 
-    reg  [31 : 0] operand_2;
+    wire  [31 : 0] operand_1; 
+    wire  [31 : 0] operand_2;
 
-    reg adder_Cin;
-    reg  [31 : 0] adder_input_1;
-    reg  [31 : 0] adder_input_2;
-    wire [31 : 0] adder_result;
+    assign  operand_1   =   (   opcode == `OP   || 
+                                opcode == `OP_IMM   ) ? rs1 : 
+                                'bz;
 
-    reg  [31 : 0] shift_input;
-    reg  [4  : 0] shift_amount;
-    reg           shift_direction;
+    assign  operand_2   =   (   opcode == `OP       ) ? rs2 :
+                            (   opcode == `OP_IMM   ) ? immediate :
+                                'bz; 
+
+    // ----------------------------------- //
+    // Main R-type and I-type Instrcutions //
+    // ----------------------------------- //
+    
+    assign  alu_output      =   (   (opcode == `OP_IMM) && (funct3 == `ADDI)    )   ?   adder_result                                                :
+                                (   (opcode == `OP_IMM) && (funct3 == `SLLI)    )   ?   shift_result                                                :
+                                (   (opcode == `OP_IMM) && (funct3 == `SLTI)    )   ?   ( $signed(operand_1) < $signed(operand_2) ? 32'd1 : 32'd0 ) :
+                                (   (opcode == `OP_IMM) && (funct3 == `SLTIU)   )   ?   operand_1 < operand_2 ? 32'd1 : 32'd0                       :
+                                (   (opcode == `OP_IMM) && (funct3 == `XORI)    )   ?   operand_1 ^ operand_2                                       :
+                                (   (opcode == `OP_IMM) && (funct3 == `ORI)     )   ?   operand_1 | operand_2                                       :
+                                (   (opcode == `OP_IMM) && (funct3 == `ANDI)    )   ?   operand_1 & operand_2                                       :
+                                (   (opcode == `OP_IMM) && (funct3 == `SRI)     )   ?   shift_result                                                :
+                                (   (opcode == `OP)     && (funct3 == `ADDSUB)  )   ?   adder_result                                                :
+                                (   (opcode == `OP)     && (funct3 == `SLL)     )   ?   shift_result                                                :
+                                (   (opcode == `OP)     && (funct3 == `SLT)     )   ?   ( $signed(operand_1) < $signed(operand_2) ? 32'd1 : 32'd0 ) :
+                                (   (opcode == `OP)     && (funct3 == `SLTU)    )   ?   operand_1 < operand_2 ? 32'd1 : 32'd0                       :
+                                (   (opcode == `OP)     && (funct3 == `XOR)     )   ?   operand_1 ^ operand_2                                       :
+                                (   (opcode == `OP)     && (funct3 == `OR)      )   ?   operand_1 | operand_2                                       :
+                                (   (opcode == `OP)     && (funct3 == `AND)     )   ?   operand_1 & operand_2                                       :
+                                (   (opcode == `OP)     && (funct3 == `SR)      )   ?   shift_result                                                :
+                                'bz;
+    
+    wire          shift_direction;
+    wire [31 : 0] shift_input;
+    wire [4  : 0] shift_amount;
     wire [31 : 0] shift_result;
 
-    reg  adder_0_enable;
-    reg  adder_1_enable;
-    reg  adder_2_enable;
-    reg  adder_3_enable;
+    assign  shift_direction =   (   (opcode == `OP_IMM) && (funct3 == `SLLI)    )   ?   `LEFT   :
+                                (   (opcode == `OP_IMM) && (funct3 == `SRI)     )   ?   `RIGHT  :
+                                (   (opcode == `OP)     && (funct3 == `SLL)     )   ?   `LEFT   :
+                                (   (opcode == `OP)     && (funct3 == `SR)      )   ?   `RIGHT  :
+                                'bz;
+    
+    assign  shift_input     =   (   (opcode == `OP_IMM) && (funct3 == `SLLI)                            )   ?   operand_1           :
+                                (   (opcode == `OP_IMM) && (funct3 == `SRI) && (funct7 == `LOGICAL)     )   ?   operand_1           :
+                                (   (opcode == `OP_IMM) && (funct3 == `SRI) && (funct7 == `ARITHMETIC)  )   ?   $signed(operand_1)  :
+                                (   (opcode == `OP)     && (funct3 == `SLL)                             )   ?   operand_1   :
+                                (   (opcode == `OP)     && (funct3 == `SR) && (funct7 == `LOGICAL)      )   ?   operand_1           :
+                                (   (opcode == `OP)     && (funct3 == `SR) && (funct7 == `ARITHMETIC)   )   ?   $signed(operand_1)  :
+                                'bz;
+
+    assign  shift_amount    =   (   (opcode == `OP_IMM) && (funct3 == `SLLI)    )   ?   operand_2[4 : 0]   :
+                                (   (opcode == `OP_IMM) && (funct3 == `SRI)     )   ?   operand_2[4 : 0]   :
+                                (   (opcode == `OP)     && (funct3 == `SLL)     )   ?   operand_2[4 : 0]   :
+                                (   (opcode == `OP)     && (funct3 == `SR)      )   ?   operand_2[4 : 0]   :
+                                'bz;
+    // ----------------------------------------- //
+    // Arithmetical Instructions: ADDI, ADD, SUB //
+    // ----------------------------------------- //
+    
+    wire adder_enable;
+    wire adder_C_in;
+    wire [31 : 0] adder_input_1;
+    wire [31 : 0] adder_input_2;
+    wire [31 : 0] adder_result;
+    
+    wire  adder_0_enable;
+    wire  adder_1_enable;
+    wire  adder_2_enable;
+    wire  adder_3_enable;
 
     wire [31 : 0] adder_0_result;
     wire [31 : 0] adder_1_result;
     wire [31 : 0] adder_2_result;
     wire [31 : 0] adder_3_result;
 
-    always @(*) 
-    begin
-        case (opcode)
-            `OP     : begin operand_1 = rs1;    operand_2 = rs2;        end // R-TYPE 
-            `OP_IMM : begin operand_1 = rs1;    operand_2 = immediate;  end // I-TYPE 
-            default : begin operand_1 = 32'bz;  operand_2 = 32'bz;      end
-        endcase        
-    end
-
-    // ----------------------------------- //
-    // Main R-type and I-type Instrcutions //
-    // ----------------------------------- //
-    always @(*)
-    begin
-        case ({funct3, opcode})
-            // I-TYPE Intructions
-            {`ADDI,     `OP_IMM} : 
-            begin 
-                alu_output = adder_result;
-            end
-            {`SLLI,     `OP_IMM} : 
-            begin 
-                shift_direction = `LEFT; shift_input = operand_1; shift_amount = operand_2[4 : 0]; alu_output = shift_result;
-            end 
-            {`SLTI,     `OP_IMM} : 
-            begin 
-                alu_output = $signed(operand_1) < $signed(operand_2) ? 32'd1 : 32'd0;  
-            end
-            {`SLTIU,    `OP_IMM} : 
-            begin 
-                alu_output = operand_1 < operand_2 ? 32'd1 : 32'd0;
-            end
-            {`XORI,     `OP_IMM} : 
-            begin 
-                alu_output = operand_1 ^ operand_2;
-            end
-            {`ORI,      `OP_IMM} : 
-            begin 
-                alu_output = operand_1 | operand_2;
-            end
-            {`ANDI,     `OP_IMM} : 
-            begin 
-                alu_output = operand_1 & operand_2;
-            end
-            {`SRI,      `OP_IMM} : 
-            begin
-                case (funct7)
-                    `LOGICAL : 
-                    begin 
-                        shift_direction = `RIGHT; 
-                        shift_input = operand_1; 
-                        shift_amount = operand_2[4 : 0]; 
-                        alu_output = shift_result; 
-                    end    
-                    `ARITHMETIC :
-                    begin 
-                        shift_direction = `RIGHT; 
-                        shift_input = operand_1; 
-                        shift_amount = operand_2[4 : 0]; 
-                        alu_output = shift_result; 
-                    end     
-                endcase
-            end
-        
-            // R-TYPE Instructions
-            {`ADDSUB,   `OP} : 
-            begin  
-                alu_output = adder_result;
-            end  
-            {`SLL,      `OP} : 
-            begin 
-                shift_direction = `LEFT; 
-                shift_input = operand_1; 
-                shift_amount = operand_2[4 : 0]; 
-                alu_output = shift_result;
-            end
-            {`SLT,      `OP} : 
-            begin  
-                alu_output = $signed(operand_1) < $signed(operand_2) ? 32'd1 : 32'd0;    
-            end
-            {`SLTU,     `OP} : 
-            begin  
-                alu_output = operand_1 < operand_2 ? 32'd1 : 32'd0;
-            end
-            {`XOR,      `OP} : 
-            begin   
-                alu_output = operand_1 ^ operand_2;
-            end
-            {`OR,       `OP} : 
-            begin    
-                alu_output = operand_1 | operand_2;
-            end
-            {`AND,      `OP} : 
-            begin 
-                alu_output = operand_1 & operand_2;  
-            end
-            {`SR,       `OP} :
-            begin
-                case (funct7)
-                    `LOGICAL : 
-                    begin 
-                        shift_direction = `RIGHT; 
-                        shift_input = operand_1; 
-                        shift_amount = operand_2[4 : 0]; 
-                        alu_output = shift_result; 
-                    end
-                    `ARITHMETIC : 
-                    begin 
-                        shift_direction = `RIGHT; 
-                        shift_input = operand_1; 
-                        shift_amount = $signed(operand_2[4 : 0]); 
-                        alu_output = shift_result; 
-                    end
-                endcase
-            end           
-            default: 
-            begin 
-                alu_output = 32'bz; 
-            end
-        endcase
-    end
-
-    // ----------------------------------------- //
-    // Arithmetical Instructions: ADDI, ADD, SUB //
-    // ----------------------------------------- //
-
-    reg adder_enable;
     // *** Implement the control systems required for your circuit ***
-    always @(*) 
-    begin
-        case ({funct3, opcode})
-            {`ADDI, `OP_IMM} : 
-            begin 
-                adder_enable = 1'b1; 
-                adder_input_1 = operand_1; 
-                adder_input_2 = operand_2; 
-                adder_Cin = 1'b0;
-            end 
+    assign  adder_enable    =   (   (opcode == `OP_IMM) && (funct3 == `ADDI)                    )   ?   `ENABLE :
+                                (   (opcode == `OP) && (funct3 == `ADDSUB)                      )   ?   `ENABLE :
+                                `DISABLE;
+    
+    assign  adder_C_in       =   (   (opcode == `OP_IMM) && (funct3 == `ADDI)                    )   ?   1'b0    :
+                                (   (opcode == `OP) && (funct3 == `ADDSUB) && (funct7 == `ADD)  )   ?   1'b0    :
+                                (   (opcode == `OP) && (funct3 == `ADDSUB) && (funct7 == `SUB)  )   ?   1'b1    :
+                                'bz;
 
-            {`ADDSUB, `OP} :
-            begin
-                case (funct7)
-                    `ADD : 
-                    begin 
-                        adder_enable = 1'b1; 
-                        adder_input_1 = operand_1; 
-                        adder_input_2 = operand_2; 
-                        adder_Cin = 1'b0;
-                    end 
-                    `SUB : 
-                    begin 
-                        adder_enable = 1'b1; 
-                        adder_input_1 = operand_1; 
-                        adder_input_2 = ~operand_2; 
-                        adder_Cin = 1'b1; 
-                    end 
-                endcase
-            end
-            default : 
-            begin 
-                adder_enable = 1'b0; 
-            end
-        endcase    
-    end
+    assign  adder_input_1   =   (   (opcode == `OP_IMM) && (funct3 == `ADDI)                    )   ?   operand_1    :
+                                (   (opcode == `OP) && (funct3 == `ADDSUB) && (funct7 == `ADD)  )   ?   operand_1    :
+                                (   (opcode == `OP) && (funct3 == `ADDSUB) && (funct7 == `SUB)  )   ?   operand_1    :
+                                'bz;
 
-    always @(*) 
-    begin
-        if (adder_enable)
-        case (control_status_register[2 : 1])
-            2'b00:   begin adder_0_enable = 1'b1; adder_1_enable = 1'b0; adder_2_enable = 1'b0; adder_3_enable = 1'b0; end
-            2'b01:   begin adder_0_enable = 1'b0; adder_1_enable = 1'b1; adder_2_enable = 1'b0; adder_3_enable = 1'b0; end
-            2'b10:   begin adder_0_enable = 1'b0; adder_1_enable = 1'b0; adder_2_enable = 1'b1; adder_3_enable = 1'b0; end
-            2'b11:   begin adder_0_enable = 1'b0; adder_1_enable = 1'b0; adder_2_enable = 1'b0; adder_3_enable = 1'b1; end 
-            default: begin adder_0_enable = 1'b1; adder_1_enable = 1'b0; adder_2_enable = 1'b0; adder_3_enable = 1'b0; end
-        endcase
-        else begin adder_0_enable = 1'b0; adder_1_enable = 1'b0; adder_2_enable = 1'b0; adder_3_enable = 1'b0; end
-    end
+    assign  adder_input_2   =   (   (opcode == `OP_IMM) && (funct3 == `ADDI)                    )   ?   operand_2       :
+                                (   (opcode == `OP) && (funct3 == `ADDSUB) && (funct7 == `ADD)  )   ?   operand_2       :
+                                (   (opcode == `OP) && (funct3 == `ADDSUB) && (funct7 == `SUB)  )   ?   ~operand_2      :
+                                'bz;
+
+    assign adder_0_enable = (   adder_enable && (control_status_register[2 : 1] == 2'b00)   ) ? `ENABLE : `DISABLE;
+    assign adder_1_enable = (   adder_enable && (control_status_register[2 : 1] == 2'b01)   ) ? `ENABLE : `DISABLE;
+    assign adder_2_enable = (   adder_enable && (control_status_register[2 : 1] == 2'b10)   ) ? `ENABLE : `DISABLE;
+    assign adder_3_enable = (   adder_enable && (control_status_register[2 : 1] == 2'b11)   ) ? `ENABLE : `DISABLE;
 
     assign adder_result =   (adder_0_enable) ? adder_0_result :
                             (adder_1_enable) ? adder_1_result :
@@ -278,10 +178,10 @@ module Arithmetic_Logic_Unit
     // ---------------------------------------
     Barrel_Shifter alu_shifter_circuit
     (
-        .input_value(shift_input),
-        .shift_amount(shift_amount),
-        .direction(shift_direction),
-        .result(shift_result)
+        .input_value    (   shift_input     ),
+        .shift_amount   (   shift_amount    ),
+        .direction      (   shift_direction ),
+        .result         (   shift_result    )
     );
     // ---------------------------------------
     // End of Barrel Shifter instantiation
@@ -301,11 +201,12 @@ module Arithmetic_Logic_Unit
             )
             approximate_accuracy_controllable_adder 
             (
-                .Er(control_status_register[10 : 3] | {8{~control_status_register[0]}}), 
-                .A(adder_input_1),
-                .B(adder_input_2),
-                .Cin(adder_Cin),
-                .Sum(adder_0_result)
+                .Er     (   control_status_register[10 : 3] | {8{~control_status_register[0]}}  ), 
+                .A      (   adder_input_1                                                       ),
+                .B      (   adder_input_2                                                       ),
+                .C_in   (   adder_C_in                                                          ),
+                .Sum    (   adder_0_result                                                      ),
+                .C_out  (                                                                       )  
             );
             //----------------------------------
             // End of Circuit 1 instantiation
@@ -341,11 +242,11 @@ endmodule
 
 module Barrel_Shifter
 (
-    input  [31 : 0] input_value, 
-    input  [4  : 0] shift_amount,
-    input           direction,  // direction = 1 : RIGHT, direction = 0 : LEFT
+    input   wire [31 : 0]   input_value, 
+    input   wire [ 4 : 0]   shift_amount,
+    input   wire            direction,  // direction = 1 : RIGHT, direction = 0 : LEFT
 
-    output [31 : 0] result 
+    output  wire [31 : 0]   result 
 );
 
     wire [31 : 0] shift_mux_0; 
@@ -378,9 +279,9 @@ module Reverser_Circuit
     parameter N = 32
 )
 (
-    input  [N - 1 : 0]  input_value, 
-    input               enable, 
-    output [N - 1 : 0]  reversed_value
+    input   wire [N - 1 : 0]    input_value, 
+    input   wire                enable, 
+    output  wire [N - 1 : 0]    reversed_value
 );
 
     wire [N - 1 : 0] temp;
@@ -406,13 +307,13 @@ module Approximate_Accuracy_Controllable_Adder
     parameter APX_LEN = 8         // Valid Options for APX_LEN : 4, 8, 12, 16, ...
 )
 (
-    input [APX_LEN - 1 : 0] Er,
-    input [LEN - 1 : 0] A,
-    input [LEN - 1 : 0] B,
-    input Cin,
+    input   wire [APX_LEN - 1 : 0]  Er,
+    input   wire [LEN - 1 : 0]      A,
+    input   wire [LEN - 1 : 0]      B,
+    input   wire                    C_in,
 
-    output [LEN - 1 : 0] Sum,
-    output Cout
+    output  wire                    C_out,
+    output  wire [LEN - 1 : 0]      Sum
 );
 
     wire [LEN - 1 : 0] C;
@@ -421,14 +322,18 @@ module Approximate_Accuracy_Controllable_Adder
     //    [3 : 0]     //
     ////////////////////
 
-    Error_Configurable_Ripple_Carry_Adder #(.LEN(4)) EC_RCA_1 
+    Error_Configurable_Ripple_Carry_Adder 
+    #(
+        .LEN(4)
+    ) 
+    EC_RCA_1 
     (
-        .Er(Er[3  : 0]),
-        .A(A[3 : 0]), 
-        .B(B[3 : 0]), 
-        .Cin(Cin), 
-        .Sum(Sum[3 : 0]), 
-        .Cout(C[3])
+        .Er     (   Er[3  : 0]  ),
+        .A      (   A[3 : 0]    ), 
+        .B      (   B[3 : 0]    ), 
+        .C_in   (   C_in        ), 
+        .C_out  (   C[3]        ),
+        .Sum    (   Sum[3 : 0]  )        
     );
     
     ////////////////////
@@ -450,10 +355,10 @@ module Approximate_Accuracy_Controllable_Adder
 
             Half_Adder HA
             (
-                .A(A[i]), 
-                .B(B[i]),
-                .Sum(EC_RCA_Output[i]),
-                .Cout(HA_Carry)
+                .A      (   A[i]                ), 
+                .B      (   B[i]                ),
+                .C_out  (   HA_Carry            ),
+                .Sum    (   EC_RCA_Output[i]    )
             );
 
             Error_Configurable_Ripple_Carry_Adder
@@ -462,18 +367,23 @@ module Approximate_Accuracy_Controllable_Adder
             )
             EC_RCA
             (
-                .Er(Er[i + 3 : i + 1]),
-                .A(A[i + 3 : i + 1]), 
-                .B(B[i + 3 : i + 1]), 
-                .Cin(HA_Carry),
-                .Sum(EC_RCA_Output[i + 3 : i + 1]),
-                .Cout(EC_RCA_Carry)
+                .Er     (   Er[i + 3 : i + 1]               ),
+                .A      (   A[i + 3 : i + 1]                ), 
+                .B      (   B[i + 3 : i + 1]                ), 
+                .C_in   (   HA_Carry                        ),
+                .C_out  (   EC_RCA_Carry                    ),
+                .Sum    (   EC_RCA_Output[i + 3 : i + 1]    )
             );
 
             wire BU_Carry;
             wire [i + 3 : i] BU_Output;
 
-            Basic_Unit BU_1 (.A(EC_RCA_Output), .B(BU_Output), .C0(BU_Carry));
+            Basic_Unit BU_1 
+            (
+                .A      (   EC_RCA_Output   ), 
+                .B      (   BU_Output       ), 
+                .C_out  (   BU_Carry        )
+            );
 
             Mux_2to1 
             #(
@@ -481,10 +391,10 @@ module Approximate_Accuracy_Controllable_Adder
             )
             MUX
             (
-                .data_in_1({EC_RCA_Carry, EC_RCA_Output}),
-                .data_in_2({BU_Carry || EC_RCA_Carry, BU_Output}),
-                .select(C[i - 1]),
-                .data_out({C[i + 3], Sum[i + 3 : i]})
+                .data_in_1  (   {EC_RCA_Carry, EC_RCA_Output}           ),
+                .data_in_2  (   {BU_Carry || EC_RCA_Carry, BU_Output}   ),
+                .select     (   C[i - 1]                                ),
+                .data_out   (   {C[i + 3], Sum[i + 3 : i]}              )
             );
         end
         
@@ -500,10 +410,10 @@ module Approximate_Accuracy_Controllable_Adder
 
             Half_Adder HA
             (
-                .A(A[i]), 
-                .B(B[i]),
-                .Sum(RCA_Output[i]),
-                .Cout(HA_Carry)
+                .A      (   A[i]            ), 
+                .B      (   B[i]            ),
+                .C_out  (   HA_Carry        ),
+                .Sum    (   RCA_Output[i]   )
             );
 
             Ripple_Carry_Adder
@@ -512,17 +422,22 @@ module Approximate_Accuracy_Controllable_Adder
             )
             RCA
             (
-                .A(A[i + 3 : i + 1]), 
-                .B(B[i + 3 : i + 1]), 
-                .Cin(HA_Carry),
-                .Sum(RCA_Output[i + 3 : i + 1]),
-                .Cout(RCA_Carry)
+                .A      (   A[i + 3 : i + 1]            ), 
+                .B      (   B[i + 3 : i + 1]            ), 
+                .C_in   (   HA_Carry                    ),
+                .C_out  (   RCA_Carry                   ),
+                .Sum    (   RCA_Output[i + 3 : i + 1]   )
             );
 
             wire BU_Carry;
             wire [i + 3 : i] BU_Output;
 
-            Basic_Unit BU_1 (.A(RCA_Output), .B(BU_Output), .C0(BU_Carry));
+            Basic_Unit BU_1 
+            (
+                .A      (   RCA_Output  ), 
+                .B      (   BU_Output   ), 
+                .C_out  (   BU_Carry    )
+            );
 
             Mux_2to1 
             #(
@@ -530,30 +445,29 @@ module Approximate_Accuracy_Controllable_Adder
             )
             MUX
             (
-                .data_in_1({RCA_Carry, RCA_Output}),
-                .data_in_2({BU_Carry || RCA_Carry, BU_Output}),
-                .select(C[i - 1]),
-                .data_out({C[i + 3], Sum[i + 3 : i]})
+                .data_in_1  (   {RCA_Carry, RCA_Output}             ),
+                .data_in_2  (   {BU_Carry || RCA_Carry, BU_Output}  ),
+                .select     (   C[i - 1]                            ),
+                .data_out   (   {C[i + 3], Sum[i + 3 : i]}          )
             );
         end
-
     endgenerate
     
-    assign Cout = C[LEN - 1];
+    assign C_out = C[LEN - 1];
 endmodule
 
 module Basic_Unit 
 (
-    input  [3 : 0] A,
-    output [4 : 1] B,
-    output C0
+    input   wire [3 : 0]    A,
+    output  wire [4 : 1]    B,
+    output  wire            C_out
 );
 
     assign B[1] = ~A[0];
     assign B[2] = A[1] ^ A[0];
     wire   C1   = A[1] & A[0];
     wire   C2   = A[2] & A[3];
-    assign C0   = C1 & C2;
+    assign C_out   = C1 & C2;
     wire   C3   = C1 & A[2];
     assign B[3] = A[2] ^ C1;
     assign B[4] = A[3] ^ C3;
@@ -564,21 +478,14 @@ module Mux_2to1
     parameter LEN = 5
 ) 
 (
-    input [LEN - 1 : 0] data_in_1,        
-    input [LEN - 1 : 0] data_in_2,        
-    input select,                   
+    input   wire [LEN - 1 : 0]  data_in_1,        
+    input   wire [LEN - 1 : 0]  data_in_2,        
+    input   wire                select,                   
 
-    output reg [LEN - 1: 0] data_out            
+    output  wire [LEN - 1: 0]   data_out            
 );
 
-    always @(*) 
-    begin
-        case (select)
-            1'b0: begin data_out = data_in_1; end
-            1'b1: begin data_out = data_in_2; end
-            default: begin data_out = {LEN{1'bz}}; end
-        endcase
-    end
+    assign  data_out = (select) ? data_in_2 : data_in_1;
 endmodule
 
 module Error_Configurable_Ripple_Carry_Adder 
@@ -586,16 +493,17 @@ module Error_Configurable_Ripple_Carry_Adder
     parameter LEN = 4
 ) 
 (
-    input [LEN - 1 : 0] Er,
-    input [LEN - 1 : 0] A,
-    input [LEN - 1 : 0] B,
-    input Cin,
+    input   wire [LEN - 1 : 0]  Er,
+    input   wire [LEN - 1 : 0]  A,
+    input   wire [LEN - 1 : 0]  B,
+    input   wire                C_in,
 
-    output [LEN - 1 : 0] Sum,
-    output Cout
+    output  wire                C_out,
+    output  wire [LEN - 1 : 0]  Sum
 );
+
     wire [LEN : 0] Carry;
-    assign Carry[0] = Cin;
+    assign Carry[0] = C_in;
 
     genvar i;
     generate
@@ -603,16 +511,16 @@ module Error_Configurable_Ripple_Carry_Adder
         begin : Error_Configurable_Ripple_Carry_Adder_Generate_Block
             Error_Configurable_Full_Adder ECFA 
             (
-                .Er(Er[i]),
-                .A(A[i]), 
-                .B(B[i]), 
-                .Cin(Carry[i]), 
-                .Sum(Sum[i]), 
-                .Cout(Carry[i + 1])
+                .Er     (   Er[i]           ),
+                .A      (   A[i]            ), 
+                .B      (   B[i]            ), 
+                .C_in   (   Carry[i]        ),  
+                .C_out  (   Carry[i + 1]    ),
+                .Sum    (   Sum[i]          )
             );
         end
-    assign Cout = Carry[LEN];
     endgenerate
+    assign C_out = Carry[LEN];
 endmodule
 
 module Ripple_Carry_Adder 
@@ -620,15 +528,16 @@ module Ripple_Carry_Adder
     parameter LEN = 4
 ) 
 (
-    input [LEN - 1 : 0] A,
-    input [LEN - 1 : 0] B,
-    input Cin,
+    input   wire    [LEN - 1 : 0]   A,
+    input   wire    [LEN - 1 : 0]   B,
+    input   wire                    C_in,
 
-    output [LEN - 1 : 0] Sum,
-    output Cout
+    output  wire                    C_out,
+    output  wire    [LEN - 1 : 0]   Sum    
 );
+
     wire [LEN : 0] Carry;
-    assign Carry[0] = Cin;
+    assign Carry[0] = C_in;
 
     genvar i;
     generate
@@ -636,53 +545,57 @@ module Ripple_Carry_Adder
         begin : Ripple_Carry_Adder_Generate_Block
             Full_Adder FA 
             (
-                .A(A[i]), 
-                .B(B[i]), 
-                .Cin(Carry[i]), 
-                .Sum(Sum[i]), 
-                .Cout(Carry[i + 1])
+                .A      (   A[i]            ), 
+                .B      (   B[i]            ), 
+                .C_in   (   Carry[i]        ), 
+                .C_out  (   Carry[i + 1]    ),
+                .Sum    (   Sum[i]          )                
             );
         end
-    assign Cout = Carry[LEN];
     endgenerate
+    assign C_out = Carry[LEN];
 endmodule
 
 module Error_Configurable_Full_Adder
 (
-    input Er,
-    input A,
-    input B, 
-    input Cin,
+    input   wire Er,
+    input   wire A,
+    input   wire B, 
+    input   wire C_in,
 
-    output Sum, 
-    output Cout
+    output  wire C_out,
+    output  wire Sum
 );
-    assign Sum = ~(Er && (A ^ B) && Cin) && ((A ^ B) || Cin);
-    assign Cout = (Er && B && Cin) || ((B || Cin) && A);
+
+    assign C_out = (Er && B && C_in) || ((B || C_in) && A);
+    assign Sum = ~(Er && (A ^ B) && C_in) && ((A ^ B) || C_in);
 endmodule
 
 module Full_Adder 
 (
-    input A,
-    input B,
-    input Cin,
+    input   wire A,
+    input   wire B,
+    input   wire C_in,
 
-    output Sum,
-    output Cout
+    output  wire C_out,
+    output  wire Sum
 );
-    assign Sum = A ^ B ^ Cin;
-    assign Cout = (A && B) || (A && Cin) || (B && Cin); 
+
+    assign C_out = (A && B) || (A && C_in) || (B && C_in);
+    assign Sum = A ^ B ^ C_in;
 endmodule
 
 module Half_Adder 
 (
-    input A,
-    input B, 
-    output Sum, 
-    output Cout
+    input   wire A,
+    input   wire B,
+
+    output  wire C_out,
+    output  wire Sum
 );
+
+    assign C_out = A & B;
     assign Sum = A ^ B;
-    assign Cout = A & B;
 endmodule
 
 // --------------------------------------------------------------------------------------------------

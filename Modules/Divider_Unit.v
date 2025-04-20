@@ -724,28 +724,28 @@ module sample_divider
     output reg [31 : 0] divider_remainder,
     output reg divider_busy
 );
-	 reg [2 : 0] count;
-	 
-	 always @(posedge clk) 
-	 begin
-		  if (~enable)	
-		  begin
-			   count <= 3'd0;
-				divider_busy <= 1'b0;
-		  end
-		  
-		  else if (count == 3'd7)
-		  begin
-		      count <= 3'd0;
-				divider_result <= divider_input_1 / divider_input_2;
-				divider_remainder <= divider_input_1 % divider_input_2;
-				divider_busy <= 1'b0;
-		  end
-		  
-		  else
-		  begin 
-				divider_busy <= 1;
-				count <= count + 3'd1;
-		  end 
-	 end
+    reg [2 : 0] count;
+    
+    always @(posedge clk) 
+    begin
+        if (~enable)	
+        begin
+            count <= 3'd0;
+            divider_busy <= 1'b0;
+        end
+        
+        else if (count == 3'd7)
+        begin
+            count <= 3'd0;
+            divider_result <= divider_input_1 / divider_input_2;
+            divider_remainder <= divider_input_1 % divider_input_2;
+            divider_busy <= 1'b0;
+        end
+        
+        else
+        begin 
+            divider_busy <= 1;
+            count <= count + 3'd1;
+        end 
+    end
 endmodule

@@ -16,41 +16,42 @@ module Register_Loading_Table
     parameter DEPTH = 5
 )
 (
-    input wire clk,
-    input wire reset,
+    input   wire    clk,
+    input   wire    reset,
     
-    input wire read_enable,
-    input wire write_enable,
+    input   wire    read_enable,
+    input   wire    write_enable,
     
-    input wire [DEPTH - 1 : 0] read_index,
-    input wire [DEPTH - 1 : 0] write_index,
+    input   wire    [DEPTH - 1 : 0] read_index,
+    input   wire    [DEPTH - 1 : 0] write_index,
 
-    input wire [WIDTH - 1 : 0] write_data,
+    input   wire    [WIDTH - 1 : 0] write_data,
 
-    output reg [WIDTH - 1 : 0] read_data
+    output  wire    [WIDTH - 1 : 0] read_data
 );
-	reg [WIDTH - 1 : 0] Loading_Table [0 : 2**DEPTH - 1];      
 
-    integer i;    	
-    
-    always @(posedge clk or posedge reset)
+    localparam NUM_WORDS = 2**DEPTH;
+	reg [WIDTH - 1 : 0] Loading_Table [0 : NUM_WORDS - 1];      
+
+    wire [NUM_WORDS - 1 : 0] write_enable_signal;
+
+    genvar i;    	
+    for (i = 0; i < NUM_WORDS; i = i + 1)
     begin
-        if (reset)
+        assign write_enable_signal[i] = (write_index == (i)) ? write_enable : `DISABLE;
+    end
+
+    for (i = 0; i < NUM_WORDS; i = i + 1)
+    begin
+        always @(posedge clk or posedge reset) 
         begin
-            for (i = 0; i < 2**DEPTH; i = i + 1)
+            if (reset)
                 Loading_Table[i] <= {WIDTH{1'b0}};
-        end
-        else if (write_enable == `ENABLE)
-        begin
-            Loading_Table[write_index] <= write_data;
-        end
+
+            else if (write_enable_signal[i])
+                Loading_Table[i] <= write_data;
+        end    
     end
 
-    always @(*) 
-    begin
-        if (read_enable == `ENABLE)
-            read_data <= Loading_Table[read_index];
-        else
-            read_data <= {WIDTH{1'bz}};
-    end
+    assign read_data = (read_enable) ? Loading_Table[read_index] : 'bz;
 endmodule

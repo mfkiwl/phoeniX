@@ -2,7 +2,7 @@
 //  A Reconfigurable Embedded Platform for Approximate Computing and Fault-Tolerant Applications
 
 //  Description: Defined Values
-//  Copyright 2024 Iran University of Science and Technology. <phoenix.digital.electronics@gmail.com>
+//  Copyright 2025 Iran University of Science and Technology. <phoenix.digital.electronics@gmail.com>
 
 //  Permission to use, copy, modify, and/or distribute this software for any
 //  purpose with or without fee is hereby granted, provided that the above
@@ -40,12 +40,13 @@
 `endif /*OPCODES*/
 
 `ifndef INSTRUCTION_TYPES
-    `define R_TYPE 3'b000
-    `define I_TYPE 3'b001
-    `define S_TYPE 3'b010
-    `define B_TYPE 3'b011
-    `define U_TYPE 3'b100
-    `define J_TYPE 3'b101
+    `define R_TYPE          3'b000
+    `define I_TYPE          3'b001
+    `define S_TYPE          3'b010
+    `define B_TYPE          3'b011
+    `define U_TYPE          3'b100
+    `define J_TYPE          3'b101
+    `define INVALID_TYPE    3'b111
 `endif /*INSTRUCTION_TYPES*/
 
 `ifndef EXCEPTIONS
