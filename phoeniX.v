@@ -29,44 +29,45 @@ module phoeniX
     parameter   RESET_ADDRESS               = 32'h0000_0000,
     parameter   DATA_SECTION_START_ADDRESS  = 32'hXXXX_XXXX,
     parameter   DATA_SECTION_END_ADDRESS    = 32'hXXXX_XXXX,
-    parameter   M_EXTENSION                 = 1'b1,
+    parameter   M_EXTENSION                 = 1'b0,
     parameter   E_EXTENSION                 = 1'b0
 ) 
 (
-    input           clk,
-    input           reset,
+    input   wire    clk,
+    input   wire    reset,
 
     //////////////////////////////////////////
     // Instruction Memory Interface Signals //
     //////////////////////////////////////////
-    output          instruction_memory_interface_enable,
-    output          instruction_memory_interface_state,
-    output [31 : 0] instruction_memory_interface_address,
-    output [ 3 : 0] instruction_memory_interface_frame_mask,
-    input  [31 : 0] instruction_memory_interface_data, 
+    output  wire                instruction_memory_interface_enable,
+    output  wire                instruction_memory_interface_state,
+    output  wire    [31 : 0]    instruction_memory_interface_address,
+    output  wire    [ 3 : 0]    instruction_memory_interface_frame_mask,
+    input   wire    [31 : 0]    instruction_memory_interface_data, 
 
     ///////////////////////////////////
     // Data Memory Interface Signals //
     ///////////////////////////////////
-    output          data_memory_interface_enable,
-    output          data_memory_interface_state,
-    output [31 : 0] data_memory_interface_address,
-    output [ 3 : 0] data_memory_interface_frame_mask,
-    inout  [31 : 0] data_memory_interface_data
+    output  wire                data_memory_interface_enable,
+    output  wire                data_memory_interface_state,
+    output  wire    [31 : 0]    data_memory_interface_address,
+    output  wire    [ 3 : 0]    data_memory_interface_frame_mask,
+    inout   wire    [31 : 0]    data_memory_interface_data
 );
-    // ---------------------------------------------
-    // Wire Declarations for Fetch/Decode Stage (FD)
-    // ---------------------------------------------
-    wire [31 : 0] next_pc_FD_wire;
-    
-    // --------------------------------------------
-    // Reg Declarations for Fetch/Decode Stage (FD)
-    // --------------------------------------------
-    reg [31 : 0] pc_FD_reg;
 
-    reg [1 : 2] stall_condition;
+    wire [1 : 2] stall_condition;
     // 1 -> Stall Condition 1 corresponds to instructions with multi-cycle execution
     // 2 -> Stall Condition 2 corresponds to instructions with dependencies on previous instructions whose values are not available in the pipeline
+
+    // --------------------------------------
+    // Wire Declarations for Fetch Stage (FE)
+    // --------------------------------------
+    wire [31 : 0] next_pc_FE_wire;
+
+    // -------------------------------------
+    // Reg Declarations for Fetch Stage (FE)
+    // -------------------------------------
+    reg [31 : 0] pc_FE_reg;
 
     // ------------------------
     // Fetch Unit Instantiation
@@ -75,8 +76,8 @@ module phoeniX
     (
         .enable                         (   !reset && !(|stall_condition[1 : 2])        ),              
         
-        .pc                             (   pc_FD_reg                                   ),
-        .next_pc                        (   next_pc_FD_wire                             ),
+        .pc                             (   pc_FE_reg                                   ),
+        .next_pc                        (   next_pc_FE_wire                             ),
 
         .memory_interface_enable        (   instruction_memory_interface_enable         ),
         .memory_interface_state         (   instruction_memory_interface_state          ),
@@ -87,82 +88,101 @@ module phoeniX
     wire [31 : 0] address_EX_wire;
     wire jump_branch_enable_EX_wire;
 
+    wire [31 : 0] pc_write_value;
+    assign pc_write_value = (jump_branch_enable_EX_wire) ? address_EX_wire : next_pc_FE_wire;
+
     // ------------------------
     // Program Counter Register 
     // ------------------------
-    always @(posedge clk)
+    always @(posedge clk or posedge reset)
     begin
         if (reset)
-            pc_FD_reg <= RESET_ADDRESS;
-        else if (jump_branch_enable_EX_wire)
-            pc_FD_reg <= address_EX_wire;
+            pc_FE_reg <= RESET_ADDRESS;
+
         else if (!(|stall_condition[1 : 2]))
-            pc_FD_reg <= next_pc_FD_wire; 
+            pc_FE_reg <= pc_write_value; 
     end
     
     // ------------------------------------------
-    // Register Declarations for Decode Procedure
+    // Register Declarations for Decode Stage (DE)
     // ------------------------------------------
-    reg [31 : 0] instruction_FD_reg;
+    reg [31 : 0] pc_DE_reg;
+    reg [31 : 0] next_pc_DE_reg;
+    reg [31 : 0] instruction_DE_reg;
+    
+    wire [31 : 0] instruction;
+    assign instruction = (jump_branch_enable_EX_wire) ? `NOP : instruction_memory_interface_data;
 
     // --------------------
     // Instruction Register 
     // --------------------
-    always @(*) 
+    always @(posedge clk or posedge reset) 
     begin
         if (reset)
-            instruction_FD_reg <= 32'bz;
+            instruction_DE_reg <= `NOP;
+
         else if (!(|stall_condition[1 : 2]))
-            instruction_FD_reg <= instruction_memory_interface_data;
+            instruction_DE_reg <= instruction;
     end
 
+    //////////////////////////////////////
+    //    FETCH TO DECODE TRANSITION    //
+    //////////////////////////////////////
+    always @(posedge clk) 
+    begin
+        if (!(|stall_condition[1 : 2]))    
+        begin
+            pc_DE_reg <=  pc_FE_reg;
+            next_pc_DE_reg <= next_pc_FE_wire;
+        end
+    end
     // --------------------------------------
     // Wire Declarations for Decode Procedure
     // --------------------------------------
-    wire [ 2 : 0] instruction_type_FD_wire;
-    wire [ 6 : 0] opcode_FD_wire;
-    wire [ 2 : 0] funct3_FD_wire;
-    wire [ 6 : 0] funct7_FD_wire;
-    wire [11 : 0] funct12_FD_wire;
+    wire [ 2 : 0] instruction_type_DE_wire;
+    wire [ 6 : 0] opcode_DE_wire;
+    wire [ 2 : 0] funct3_DE_wire;
+    wire [ 6 : 0] funct7_DE_wire;
+    wire [11 : 0] funct12_DE_wire;
 
-    wire [ 4 : 0] read_index_1_FD_wire;
-    wire [ 4 : 0] read_index_2_FD_wire;
-    wire [ 4 : 0] write_index_FD_wire;
-    wire [11 : 0] csr_index_FD_wire;
+    wire [ 4 : 0] read_index_1_DE_wire;
+    wire [ 4 : 0] read_index_2_DE_wire;
+    wire [ 4 : 0] write_index_DE_wire;
+    wire [11 : 0] csr_index_DE_wire;
 
-    wire read_enable_1_FD_wire;
-    wire read_enable_2_FD_wire;
-    wire write_enable_FD_wire;
+    wire read_enable_1_DE_wire;
+    wire read_enable_2_DE_wire;
+    wire write_enable_DE_wire;
 
-    wire read_enable_csr_FD_wire;
-    wire write_enable_csr_FD_wire;
+    wire read_enable_csr_DE_wire;
+    wire write_enable_csr_DE_wire;
 
-    wire [31 : 0] immediate_FD_wire;
+    wire [31 : 0] immediate_DE_wire;
 
     // ---------------------------------
     // Instruction Decoder Instantiation
     // ---------------------------------
     Instruction_Decoder instruction_decoder
     (
-        .instruction        (   instruction_FD_reg          ),
+        .instruction        (   instruction_DE_reg          ),
 
-        .instruction_type   (   instruction_type_FD_wire    ),
-        .opcode             (   opcode_FD_wire              ),
-        .funct3             (   funct3_FD_wire              ),
-        .funct7             (   funct7_FD_wire              ),
-        .funct12            (   funct12_FD_wire             ),
+        .instruction_type   (   instruction_type_DE_wire    ),
+        .opcode             (   opcode_DE_wire              ),
+        .funct3             (   funct3_DE_wire              ),
+        .funct7             (   funct7_DE_wire              ),
+        .funct12            (   funct12_DE_wire             ),
 
-        .read_index_1       (   read_index_1_FD_wire        ),
-        .read_index_2       (   read_index_2_FD_wire        ),
-        .write_index        (   write_index_FD_wire         ),
-        .csr_index          (   csr_index_FD_wire           ),
+        .read_index_1       (   read_index_1_DE_wire        ),
+        .read_index_2       (   read_index_2_DE_wire        ),
+        .write_index        (   write_index_DE_wire         ),
+        .csr_index          (   csr_index_DE_wire           ),
 
-        .read_enable_1      (   read_enable_1_FD_wire       ),
-        .read_enable_2      (   read_enable_2_FD_wire       ),
-        .write_enable       (   write_enable_FD_wire        ),
+        .read_enable_1      (   read_enable_1_DE_wire       ),
+        .read_enable_2      (   read_enable_2_DE_wire       ),
+        .write_enable       (   write_enable_DE_wire        ),
 
-        .read_enable_csr    (   read_enable_csr_FD_wire     ),
-        .write_enable_csr   (   write_enable_csr_FD_wire    )
+        .read_enable_csr    (   read_enable_csr_DE_wire     ),
+        .write_enable_csr   (   write_enable_csr_DE_wire    )
     );
 
     // ---------------------------------
@@ -170,9 +190,9 @@ module phoeniX
     // --------------------------------- 
     Immediate_Generator immediate_generator
     (
-        .instruction        (   instruction_FD_reg[31 : 7]  ),
-        .instruction_type   (   instruction_type_FD_wire    ),
-        .immediate          (   immediate_FD_wire           )
+        .instruction        (   instruction_DE_reg[31 : 7]  ),
+        .instruction_type   (   instruction_type_DE_wire    ),
+        .immediate          (   immediate_DE_wire           )
     );
 
     // ----------------------------------------------------------------------
@@ -187,23 +207,23 @@ module phoeniX
     wire FW_enable_1;
     wire FW_enable_2;
 
-    // ---------------------------------------------------
-    // Wire Declaration for Reading From CSR Register File
-    // ---------------------------------------------------
-    wire [31 : 0] csr_data_FD_wire;
-
     // -----------------------------------------------
     // Wire Declaration for inputs to source bus 1 & 2
     // ----------------------------------------------- 
-    wire [31 : 0] rs1_FD_wire;
-    wire [31 : 0] rs2_FD_wire;
+    wire [31 : 0] rs1_DE_wire;
+    wire [31 : 0] rs2_DE_wire;
 
     // -----------------------------------------------------------------------------------
     // assign inputs to source bus 1 & 2  --> to be selected between RF source and FW data
     // -----------------------------------------------------------------------------------
-    assign rs1_FD_wire = FW_enable_1 ? FW_source_1 : RF_source_1;
-    assign rs2_FD_wire = FW_enable_2 ? FW_source_2 : RF_source_2;
+    assign rs1_DE_wire = FW_enable_1 ? FW_source_1 : RF_source_1;
+    assign rs2_DE_wire = FW_enable_2 ? FW_source_2 : RF_source_2;
     
+    // ---------------------------------------------------
+    // Wire Declaration for Reading From CSR Register File
+    // ---------------------------------------------------
+    wire [31 : 0] csr_data_DE_wire;
+
     // ---------------------------------------
     // Reg Declarations for Execute Stage (EX)
     // ---------------------------------------
@@ -229,16 +249,16 @@ module phoeniX
     reg [31 : 0] rs2_EX_reg;
     reg [31 : 0] csr_data_EX_reg;
 
-    //////////////////////////////////////////////
-    //    FETCH/DECODE TO EXECUTE TRANSITION    //
-    //////////////////////////////////////////////
+    ////////////////////////////////////////
+    //    DECODE TO EXECUTE TRANSITION    //
+    ////////////////////////////////////////
     always @(posedge clk) 
     begin
         if (jump_branch_enable_EX_wire || (!(stall_condition[1]) & stall_condition[2]))
         begin
             write_enable_EX_reg <= `DISABLE;  
-            rs1_EX_reg <= 32'bz;
-            rs2_EX_reg <= 32'bz;
+            rs1_EX_reg <= 32'd0;
+            rs2_EX_reg <= 32'd0;
 
             opcode_EX_reg <= `NOP_opcode;
             funct3_EX_reg <= `NOP_funct3;
@@ -252,28 +272,28 @@ module phoeniX
 
         else if (!(|stall_condition[1 : 2]))
         begin
-            pc_EX_reg <= pc_FD_reg;
-            next_pc_EX_reg <= next_pc_FD_wire;
+            pc_EX_reg <= pc_DE_reg;
+            next_pc_EX_reg <= next_pc_DE_reg;
             
             
-            instruction_type_EX_reg <= instruction_type_FD_wire;
-            opcode_EX_reg <= opcode_FD_wire;
-            funct3_EX_reg <= funct3_FD_wire;
-            funct7_EX_reg <= funct7_FD_wire;
-            funct12_EX_reg <= funct12_FD_wire;
+            instruction_type_EX_reg <= instruction_type_DE_wire;
+            opcode_EX_reg <= opcode_DE_wire;
+            funct3_EX_reg <= funct3_DE_wire;
+            funct7_EX_reg <= funct7_DE_wire;
+            funct12_EX_reg <= funct12_DE_wire;
 
-            immediate_EX_reg <= immediate_FD_wire; 
+            immediate_EX_reg <= immediate_DE_wire; 
             
-            rs1_EX_reg <= rs1_FD_wire;
-            rs2_EX_reg <= rs2_FD_wire;
+            rs1_EX_reg <= rs1_DE_wire;
+            rs2_EX_reg <= rs2_DE_wire;
 
-            write_index_EX_reg <= write_index_FD_wire;
-            write_enable_EX_reg <= write_enable_FD_wire;
+            write_index_EX_reg <= write_index_DE_wire;
+            write_enable_EX_reg <= write_enable_DE_wire;
 
-            write_enable_csr_EX_reg <= write_enable_csr_FD_wire;
-            csr_index_EX_reg <= csr_index_FD_wire;
-            csr_data_EX_reg <= csr_data_FD_wire;
-            read_index_1_EX_reg <= read_index_1_FD_wire;
+            write_enable_csr_EX_reg <= write_enable_csr_DE_wire;
+            csr_index_EX_reg <= csr_index_DE_wire;
+            csr_data_EX_reg <= csr_data_DE_wire;
+            read_index_1_EX_reg <= read_index_1_DE_wire;
         end
     end
 
@@ -300,7 +320,7 @@ module phoeniX
     Arithmetic_Logic_Unit
     #(
         .GENERATE_CIRCUIT_1(1),
-        .GENERATE_CIRCUIT_2(1),
+        .GENERATE_CIRCUIT_2(0),
         .GENERATE_CIRCUIT_3(0),
         .GENERATE_CIRCUIT_4(0)
     )  
@@ -405,30 +425,23 @@ module phoeniX
     );
 
     // ----------------------------------------
-    // Reg Declaration for result of execution
+    // Wire declaration for result of execution
     // ----------------------------------------
-    reg [31 : 0] execution_result_EX_reg;
+    wire [31 : 0] execution_result_EX_wire;
 
     // ----------------------------------------------------------
     //  Assigning result to alu output / mul output / div output
     // ----------------------------------------------------------
-    always @(*) 
-    begin
-        case ({funct7_EX_reg, funct3_EX_reg, opcode_EX_reg})
-            {`MULDIV, `MUL,    `OP} : execution_result_EX_reg = mul_output_EX_wire;
-            {`MULDIV, `MULH,   `OP} : execution_result_EX_reg = mul_output_EX_wire;
-            {`MULDIV, `MULHSU, `OP} : execution_result_EX_reg = mul_output_EX_wire;
-            {`MULDIV, `MULHU,  `OP} : execution_result_EX_reg = mul_output_EX_wire;
-
-            {`MULDIV, `DIV,    `OP} : execution_result_EX_reg = div_output_EX_wire;
-            {`MULDIV, `DIVU,   `OP} : execution_result_EX_reg = div_output_EX_wire;
-            {`MULDIV, `REM,    `OP} : execution_result_EX_reg = div_output_EX_wire;
-            {`MULDIV, `REMU,   `OP} : execution_result_EX_reg = div_output_EX_wire;
-
-            default: execution_result_EX_reg = alu_output_EX_wire;    
-        endcase 
-    end
-
+    assign  execution_result_EX_wire    =   (   {funct7_EX_reg, funct3_EX_reg, opcode_EX_reg} == {`MULDIV, `MUL,    `OP}    )   ?   mul_output_EX_wire  :
+                                            (   {funct7_EX_reg, funct3_EX_reg, opcode_EX_reg} == {`MULDIV, `MULH,   `OP}    )   ?   mul_output_EX_wire  :
+                                            (   {funct7_EX_reg, funct3_EX_reg, opcode_EX_reg} == {`MULDIV, `MULHSU, `OP}    )   ?   mul_output_EX_wire  :
+                                            (   {funct7_EX_reg, funct3_EX_reg, opcode_EX_reg} == {`MULDIV, `MULHU,  `OP}    )   ?   mul_output_EX_wire  :
+                                            (   {funct7_EX_reg, funct3_EX_reg, opcode_EX_reg} == {`MULDIV, `DIV,    `OP}    )   ?   div_output_EX_wire  :
+                                            (   {funct7_EX_reg, funct3_EX_reg, opcode_EX_reg} == {`MULDIV, `DIVU,   `OP}    )   ?   div_output_EX_wire  :
+                                            (   {funct7_EX_reg, funct3_EX_reg, opcode_EX_reg} == {`MULDIV, `REM,    `OP}    )   ?   div_output_EX_wire  :
+                                            (   {funct7_EX_reg, funct3_EX_reg, opcode_EX_reg} == {`MULDIV, `REMU,   `OP}    )   ?   div_output_EX_wire  :
+                                            alu_output_EX_wire;
+                                            
     // ------------------------------------------------
     // Reg Declarations for Memory/Writeback Stage (MW)
     // ------------------------------------------------
@@ -488,7 +501,7 @@ module phoeniX
 
             address_MW_reg <= address_EX_wire;
             rs2_MW_reg <= rs2_EX_reg;
-            execution_result_MW_reg <= execution_result_EX_reg;
+            execution_result_MW_reg <= execution_result_EX_wire;
             csr_rd_MW_reg <= csr_rd_EX_wire;
         end
     end
@@ -519,28 +532,24 @@ module phoeniX
     // ---------------------------------------------------------------
     // assigning write back data from immediate or load data or result
     // ---------------------------------------------------------------
-    reg [31 : 0] write_data_MW_reg;
-    always @(*) 
-    begin    
-        case (opcode_MW_reg)
-            `OP_IMM : write_data_MW_reg = execution_result_MW_reg;
-            `OP     : write_data_MW_reg = execution_result_MW_reg;
-            `JAL    : write_data_MW_reg = next_pc_MW_reg;
-            `JALR   : write_data_MW_reg = next_pc_MW_reg;
-            `AUIPC  : write_data_MW_reg = address_MW_reg;
-            `LOAD   : write_data_MW_reg = load_data_MW_wire;
-            `LUI    : write_data_MW_reg = immediate_MW_reg;
-            `SYSTEM : write_data_MW_reg = csr_rd_MW_reg;
-            default : write_data_MW_reg = 32'bz;
-        endcase
-    end
-    
+    wire [31 : 0] write_data_MW_wire;
+        
+    assign write_data_MW_wire   =   (   opcode_MW_reg == `OP_IMM    )   ?   execution_result_MW_reg :
+                                    (   opcode_MW_reg == `OP        )   ?   execution_result_MW_reg :
+                                    (   opcode_MW_reg == `JAL       )   ?   next_pc_MW_reg          :
+                                    (   opcode_MW_reg == `JALR      )   ?   next_pc_MW_reg          :
+                                    (   opcode_MW_reg == `AUIPC     )   ?   address_MW_reg          :
+                                    (   opcode_MW_reg == `LOAD      )   ?   load_data_MW_wire       :
+                                    (   opcode_MW_reg == `LUI       )   ?   immediate_MW_reg        :
+                                    (   opcode_MW_reg == `SYSTEM    )   ?   csr_rd_MW_reg           :
+                                    'bz;
+
     //////////////////////////////////////
     //     Hazard Detection Units       //
     //////////////////////////////////////
     Hazard_Forward_Unit hazard_forward_unit_source_1
     (
-        .source_index           (   read_index_1_FD_wire                                ),
+        .source_index           (   read_index_1_DE_wire                                ),
         
         .destination_index_1    (   write_index_EX_reg                                  ),
         .destination_index_2    (   write_index_MW_reg                                  ),
@@ -548,8 +557,8 @@ module phoeniX
         .data_1                 (   opcode_EX_reg == `LUI      ? immediate_EX_reg : 
                                     opcode_EX_reg == `AUIPC    ? address_EX_wire  : 
                                     opcode_EX_reg == `SYSTEM   ? csr_rd_EX_wire   : 
-                                    execution_result_EX_reg                             ),
-        .data_2                 (   write_data_MW_reg                                   ),
+                                    execution_result_EX_wire                             ),
+        .data_2                 (   write_data_MW_wire                                  ),
 
         .enable_1               (   write_enable_EX_reg                                 ),
         .enable_2               (   write_enable_MW_reg                                 ),
@@ -560,7 +569,7 @@ module phoeniX
 
     Hazard_Forward_Unit hazard_forward_unit_source_2
     (
-        .source_index           (   read_index_2_FD_wire                                ),
+        .source_index           (   read_index_2_DE_wire                                ),
         
         .destination_index_1    (   write_index_EX_reg                                  ),
         .destination_index_2    (   write_index_MW_reg                                  ),
@@ -568,8 +577,8 @@ module phoeniX
         .data_1                 (   opcode_EX_reg == `LUI      ? immediate_EX_reg : 
                                     opcode_EX_reg == `AUIPC    ? address_EX_wire  : 
                                     opcode_EX_reg == `SYSTEM   ? csr_rd_EX_wire   : 
-                                    execution_result_EX_reg                             ),
-        .data_2                 (   write_data_MW_reg                                   ),
+                                    execution_result_EX_wire                             ),
+        .data_2                 (   write_data_MW_wire                                  ),
 
         .enable_1               (   write_enable_EX_reg                                 ),
         .enable_2               (   write_enable_MW_reg                                 ),
@@ -581,22 +590,10 @@ module phoeniX
     ////////////////////////////////////
     //          Bubble Unit           //
     ////////////////////////////////////    
-    always @(*) 
-    begin
-        if (mul_busy_EX_wire || div_busy_EX_wire)
-        begin
-            stall_condition[1] = `ENABLE;
-        end
-        else stall_condition[1] = `DISABLE;
-        
-        if  (opcode_EX_reg == `LOAD & write_enable_EX_reg &
-            (((write_index_EX_reg == read_index_1_FD_wire) & read_enable_1_FD_wire)  || 
-             ((write_index_EX_reg == read_index_2_FD_wire) & read_enable_2_FD_wire))) 
-        begin
-            stall_condition[2] = `ENABLE;
-        end   
-        else stall_condition[2] = `DISABLE;
-    end
+    assign stall_condition[1] = (mul_busy_EX_wire || div_busy_EX_wire) ? `ENABLE : `DISABLE;
+    assign stall_condition[2] = (opcode_EX_reg == `LOAD & write_enable_EX_reg &
+                                (((write_index_EX_reg == read_index_1_DE_wire) & read_enable_1_DE_wire)  || 
+                                ((write_index_EX_reg == read_index_2_DE_wire) & read_enable_2_DE_wire))) ? `ENABLE : `DISABLE;
 
     ////////////////////////////////////////
     //    Register File Instantiation     //
@@ -611,15 +608,15 @@ module phoeniX
         .clk            (   clk                     ),
         .reset          (   reset                   ),
 
-        .read_enable_1  (   read_enable_1_FD_wire   ),
-        .read_enable_2  (   read_enable_2_FD_wire   ),
+        .read_enable_1  (   read_enable_1_DE_wire   ),
+        .read_enable_2  (   read_enable_2_DE_wire   ),
         .write_enable   (   write_enable_MW_reg     ),
 
-        .read_index_1   (   read_index_1_FD_wire    ),
-        .read_index_2   (   read_index_2_FD_wire    ),
+        .read_index_1   (   read_index_1_DE_wire    ),
+        .read_index_2   (   read_index_2_DE_wire    ),
         .write_index    (   write_index_MW_reg      ),
 
-        .write_data     (   write_data_MW_reg       ),
+        .write_data     (   write_data_MW_wire      ),
         .read_data_1    (   RF_source_1             ),
         .read_data_2    (   RF_source_2             )
     );
@@ -638,7 +635,8 @@ module phoeniX
         .reset          (   reset                   ),
         
         .read_enable    (                           ),
-        .write_enable   (   write_enable_MW_reg     ),
+        .write_enable   (   write_enable_MW_reg &&
+                            opcode_MW_reg == `LOAD  ),
 
         .read_index     (                           ),
         .write_index    (   write_index_MW_reg      ),
@@ -661,18 +659,17 @@ module phoeniX
         .funct12            (   funct12_MW_reg              ),
         .write_index        (   write_index_MW_reg          ),
 
-        .read_enable_csr    (   read_enable_csr_FD_wire     ),
+        .read_enable_csr    (   read_enable_csr_DE_wire     ),
         .write_enable_csr   (   write_enable_csr_EX_reg     ),
 
-        .csr_read_index     (   csr_index_FD_wire           ),
+        .csr_read_index     (   csr_index_DE_wire           ),
         .csr_write_index    (   csr_index_EX_reg            ),
 
         .csr_write_data     (   csr_data_out_EX_wire        ),
-        .csr_read_data      (   csr_data_FD_wire            ),
+        .csr_read_data      (   csr_data_DE_wire            ),
 
         .alucsr_wire        (   alucsr_wire                 ),
         .mulcsr_wire        (   mulcsr_wire                 ),
         .divcsr_wire        (   divcsr_wire                 )
     );
-
 endmodule
