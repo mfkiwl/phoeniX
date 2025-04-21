@@ -38,12 +38,12 @@ module Fetch_Unit
         .result(incrementer_result)
     );
 
-    assign  next_pc = (enable) ? {incrementer_result, 2'b00} : 'bz;
+    assign  next_pc = (enable) ? {incrementer_result, 2'b00} : 32'bz;
 
     assign  memory_interface_enable     =   (enable) ? `ENABLE  :   `DISABLE;
-    assign  memory_interface_state      =   (enable) ? `READ    :   'bz;
-    assign  memory_interface_address    =   (enable) ? pc       :   'bz;
-    assign  memory_interface_frame_mask =   (enable) ? 4'b1111  :   'bz;
+    assign  memory_interface_state      =   (enable) ? `READ    :   1'bz;
+    assign  memory_interface_address    =   (enable) ? pc       :   32'bz;
+    assign  memory_interface_frame_mask =   (enable) ? 4'b1111  :   4'bz;
 endmodule
 
 module Incrementer

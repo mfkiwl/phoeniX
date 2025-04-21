@@ -56,6 +56,6 @@ module Register_File
         end    
     end
 
-    assign read_data_1 = (read_enable_1) ? Registers[read_index_1] : 'bz;
-    assign read_data_2 = (read_enable_2) ? Registers[read_index_2] : 'bz;
+    assign read_data_1 = (read_enable_1) ? Registers[read_index_1] : 32'bz;
+    assign read_data_2 = (read_enable_2) ? Registers[read_index_2] : 32'bz;
 endmodule

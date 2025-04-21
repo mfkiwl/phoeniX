@@ -23,5 +23,5 @@ module Immediate_Generator
                             (instruction_type == `B_TYPE) ? { {20{instruction[31]}}, instruction[7], instruction[30 : 25], instruction[11 : 8], 1'b0 }      :
                             (instruction_type == `U_TYPE) ? { instruction[31 : 12], {12{1'b0}} }                                                            :
                             (instruction_type == `J_TYPE) ? { {12{instruction[31]}}, instruction[19 : 12], instruction[20], instruction[30 : 21], 1'b0 }    :
-                            'bz;
+                            32'bz;
 endmodule

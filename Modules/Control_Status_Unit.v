@@ -23,13 +23,13 @@ module Control_Status_Unit
     output  wire [31 : 0] CSR_out
 );
 
-    assign  rd      =   (   {funct3, opcode} == {`CSRRW,  `SYSTEM}  ||
-                            {funct3, opcode} == {`CSRRS,  `SYSTEM}  ||
-                            {funct3, opcode} == {`CSRRC,  `SYSTEM}  ||
-                            {funct3, opcode} == {`CSRRWI, `SYSTEM}  ||
-                            {funct3, opcode} == {`CSRRSI, `SYSTEM}  ||
-                            {funct3, opcode} == {`CSRRCI, `SYSTEM}  )   ?   CSR_in : 
-                        'bz;
+    assign  rd  =   (   {funct3, opcode} == {`CSRRW,  `SYSTEM}  ||
+                        {funct3, opcode} == {`CSRRS,  `SYSTEM}  ||
+                        {funct3, opcode} == {`CSRRC,  `SYSTEM}  ||
+                        {funct3, opcode} == {`CSRRWI, `SYSTEM}  ||
+                        {funct3, opcode} == {`CSRRSI, `SYSTEM}  ||
+                        {funct3, opcode} == {`CSRRCI, `SYSTEM}  )   ?   CSR_in : 
+                        32'bz;
 
     assign  CSR_out =   (   {funct3, opcode} == {`CSRRW,  `SYSTEM}  )   ?   rs1                                     :
                         (   {funct3, opcode} == {`CSRRS,  `SYSTEM}  )   ?   CSR_in | rs1                            :
@@ -37,5 +37,5 @@ module Control_Status_Unit
                         (   {funct3, opcode} == {`CSRRWI, `SYSTEM}  )   ?   {27'b0, unsigned_immediate}             :
                         (   {funct3, opcode} == {`CSRRSI, `SYSTEM}  )   ?   CSR_in | {27'b0, unsigned_immediate}    :
                         (   {funct3, opcode} == {`CSRRCI, `SYSTEM}  )   ?   CSR_in & ~{27'b0, unsigned_immediate}   :
-                        'bz;
+                        32'bz;
 endmodule

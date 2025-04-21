@@ -27,8 +27,6 @@
 module phoeniX 
 #(
     parameter   RESET_ADDRESS               = 32'h0000_0000,
-    parameter   DATA_SECTION_START_ADDRESS  = 32'hXXXX_XXXX,
-    parameter   DATA_SECTION_END_ADDRESS    = 32'hXXXX_XXXX,
     parameter   M_EXTENSION                 = 1'b0,
     parameter   E_EXTENSION                 = 1'b0
 ) 
@@ -55,7 +53,7 @@ module phoeniX
     inout   wire    [31 : 0]    data_memory_interface_data
 );
 
-    wire [1 : 2] stall_condition;
+    wire [2 : 1] stall_condition;
     // 1 -> Stall Condition 1 corresponds to instructions with multi-cycle execution
     // 2 -> Stall Condition 2 corresponds to instructions with dependencies on previous instructions whose values are not available in the pipeline
 
@@ -74,7 +72,7 @@ module phoeniX
     // ------------------------
     Fetch_Unit fetch_unit
     (
-        .enable                         (   !reset && !(|stall_condition[1 : 2])        ),              
+        .enable                         (   !reset && !(|stall_condition[2 : 1])        ),              
         
         .pc                             (   pc_FE_reg                                   ),
         .next_pc                        (   next_pc_FE_wire                             ),
@@ -91,6 +89,9 @@ module phoeniX
     wire [31 : 0] pc_write_value;
     assign pc_write_value = (jump_branch_enable_EX_wire) ? address_EX_wire : next_pc_FE_wire;
 
+    wire [31 : 0] instruction;
+    assign instruction = (jump_branch_enable_EX_wire) ? `NOP : instruction_memory_interface_data;
+
     // ------------------------
     // Program Counter Register 
     // ------------------------
@@ -99,7 +100,7 @@ module phoeniX
         if (reset)
             pc_FE_reg <= RESET_ADDRESS;
 
-        else if (!(|stall_condition[1 : 2]))
+        else if (!(|stall_condition[2 : 1]))
             pc_FE_reg <= pc_write_value; 
     end
     
@@ -109,9 +110,6 @@ module phoeniX
     reg [31 : 0] pc_DE_reg;
     reg [31 : 0] next_pc_DE_reg;
     reg [31 : 0] instruction_DE_reg;
-    
-    wire [31 : 0] instruction;
-    assign instruction = (jump_branch_enable_EX_wire) ? `NOP : instruction_memory_interface_data;
 
     // --------------------
     // Instruction Register 
@@ -121,7 +119,7 @@ module phoeniX
         if (reset)
             instruction_DE_reg <= `NOP;
 
-        else if (!(|stall_condition[1 : 2]))
+        else if (!(|stall_condition[2 : 1]))
             instruction_DE_reg <= instruction;
     end
 
@@ -130,7 +128,7 @@ module phoeniX
     //////////////////////////////////////
     always @(posedge clk) 
     begin
-        if (!(|stall_condition[1 : 2]))    
+        if (!(|stall_condition[2 : 1]))    
         begin
             pc_DE_reg <=  pc_FE_reg;
             next_pc_DE_reg <= next_pc_FE_wire;
@@ -154,8 +152,8 @@ module phoeniX
     wire read_enable_2_DE_wire;
     wire write_enable_DE_wire;
 
-    wire read_enable_csr_DE_wire;
-    wire write_enable_csr_DE_wire;
+    wire csr_read_enable_DE_wire;
+    wire csr_write_enable_DE_wire;
 
     wire [31 : 0] immediate_DE_wire;
 
@@ -181,8 +179,8 @@ module phoeniX
         .read_enable_2      (   read_enable_2_DE_wire       ),
         .write_enable       (   write_enable_DE_wire        ),
 
-        .read_enable_csr    (   read_enable_csr_DE_wire     ),
-        .write_enable_csr   (   write_enable_csr_DE_wire    )
+        .csr_read_enable    (   csr_read_enable_DE_wire     ),
+        .csr_write_enable   (   csr_write_enable_DE_wire    )
     );
 
     // ---------------------------------
@@ -241,7 +239,7 @@ module phoeniX
     reg [11 : 0] csr_index_EX_reg;
 
     reg write_enable_EX_reg;
-    reg write_enable_csr_EX_reg;
+    reg csr_write_enable_EX_reg;
     
     reg [31 : 0] immediate_EX_reg;
 
@@ -270,7 +268,7 @@ module phoeniX
             write_index_EX_reg <= `NOP_write_index;
         end
 
-        else if (!(|stall_condition[1 : 2]))
+        else if (!(|stall_condition[2 : 1]))
         begin
             pc_EX_reg <= pc_DE_reg;
             next_pc_EX_reg <= next_pc_DE_reg;
@@ -290,7 +288,7 @@ module phoeniX
             write_index_EX_reg <= write_index_DE_wire;
             write_enable_EX_reg <= write_enable_DE_wire;
 
-            write_enable_csr_EX_reg <= write_enable_csr_DE_wire;
+            csr_write_enable_EX_reg <= csr_write_enable_DE_wire;
             csr_index_EX_reg <= csr_index_DE_wire;
             csr_data_EX_reg <= csr_data_DE_wire;
             read_index_1_EX_reg <= read_index_1_DE_wire;
@@ -441,7 +439,7 @@ module phoeniX
                                             (   {funct7_EX_reg, funct3_EX_reg, opcode_EX_reg} == {`MULDIV, `REM,    `OP}    )   ?   div_output_EX_wire  :
                                             (   {funct7_EX_reg, funct3_EX_reg, opcode_EX_reg} == {`MULDIV, `REMU,   `OP}    )   ?   div_output_EX_wire  :
                                             alu_output_EX_wire;
-                                            
+
     // ------------------------------------------------
     // Reg Declarations for Memory/Writeback Stage (MW)
     // ------------------------------------------------
@@ -542,7 +540,7 @@ module phoeniX
                                     (   opcode_MW_reg == `LOAD      )   ?   load_data_MW_wire       :
                                     (   opcode_MW_reg == `LUI       )   ?   immediate_MW_reg        :
                                     (   opcode_MW_reg == `SYSTEM    )   ?   csr_rd_MW_reg           :
-                                    'bz;
+                                    32'bz;
 
     //////////////////////////////////////
     //     Hazard Detection Units       //
@@ -557,7 +555,7 @@ module phoeniX
         .data_1                 (   opcode_EX_reg == `LUI      ? immediate_EX_reg : 
                                     opcode_EX_reg == `AUIPC    ? address_EX_wire  : 
                                     opcode_EX_reg == `SYSTEM   ? csr_rd_EX_wire   : 
-                                    execution_result_EX_wire                             ),
+                                    execution_result_EX_wire                            ),
         .data_2                 (   write_data_MW_wire                                  ),
 
         .enable_1               (   write_enable_EX_reg                                 ),
@@ -577,7 +575,7 @@ module phoeniX
         .data_1                 (   opcode_EX_reg == `LUI      ? immediate_EX_reg : 
                                     opcode_EX_reg == `AUIPC    ? address_EX_wire  : 
                                     opcode_EX_reg == `SYSTEM   ? csr_rd_EX_wire   : 
-                                    execution_result_EX_wire                             ),
+                                    execution_result_EX_wire                            ),
         .data_2                 (   write_data_MW_wire                                  ),
 
         .enable_1               (   write_enable_EX_reg                                 ),
@@ -659,8 +657,8 @@ module phoeniX
         .funct12            (   funct12_MW_reg              ),
         .write_index        (   write_index_MW_reg          ),
 
-        .read_enable_csr    (   read_enable_csr_DE_wire     ),
-        .write_enable_csr   (   write_enable_csr_EX_reg     ),
+        .csr_read_enable    (   csr_read_enable_DE_wire     ),
+        .csr_write_enable   (   csr_write_enable_EX_reg     ),
 
         .csr_read_index     (   csr_index_DE_wire           ),
         .csr_write_index    (   csr_index_EX_reg            ),

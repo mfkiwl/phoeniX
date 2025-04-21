@@ -21,8 +21,8 @@ module Control_Status_Register_File
     input   wire [11 : 0] funct12,
     input   wire [ 4 : 0] write_index,
 
-    input   wire read_enable_csr,
-    input   wire write_enable_csr,
+    input   wire csr_read_enable,
+    input   wire csr_write_enable,
 
     input   wire [11 : 0] csr_read_index,
     input   wire [11 : 0] csr_write_index,
@@ -62,9 +62,9 @@ module Control_Status_Register_File
                                 (   csr_read_index == `mcycleh      )   ?   mcycle_reg[63 : 32]     :
                                 (   csr_read_index == `minstret     )   ?   minstret_reg[31 :  0]   :
                                 (   csr_read_index == `minstreth    )   ?   minstret_reg[63 : 32]   :
-                                'bz;
+                                32'bz;
 
-    assign csr_read_data    =   (read_enable_csr) ? csr_read_value : 'bz;
+    assign csr_read_data    =   (csr_read_enable) ? csr_read_value : 32'bz;
 
     // ----------------- //
     // CSR Write Process //
@@ -73,7 +73,7 @@ module Control_Status_Register_File
     begin
         if (reset)
             alucsr_reg <= 32'd0; 
-        else if (write_enable_csr && (csr_write_index == `alucsr))
+        else if (csr_write_enable && (csr_write_index == `alucsr))
             alucsr_reg <= csr_write_data;
     end
 
@@ -81,7 +81,7 @@ module Control_Status_Register_File
     begin
         if (reset)
             mulcsr_reg <= 32'd0; 
-        else if (write_enable_csr && (csr_write_index == `mulcsr))
+        else if (csr_write_enable && (csr_write_index == `mulcsr))
             mulcsr_reg <= csr_write_data;
     end
 
@@ -89,7 +89,7 @@ module Control_Status_Register_File
     begin
         if (reset)
             divcsr_reg <= 32'd0; 
-        else if (write_enable_csr && (csr_write_index == `divcsr))
+        else if (csr_write_enable && (csr_write_index == `divcsr))
             divcsr_reg <= csr_write_data;
     end
 
@@ -102,8 +102,8 @@ module Control_Status_Register_File
     // -------------
     always @(posedge clk) 
     begin
-        if (reset)  mcycle_reg <= 32'b0;
-        else        mcycle_reg <= mcycle_reg + 32'd1; 
+        if (reset)  mcycle_reg <= 64'd0;
+        else        mcycle_reg <= mcycle_reg + 64'd1; 
     end
 
     // -------------------
@@ -111,7 +111,7 @@ module Control_Status_Register_File
     // -------------------
     always @(posedge clk) 
     begin
-        if (reset)  minstret_reg <= 32'b0;
+        if (reset)  minstret_reg <= 64'd0;
         else if (!(
             opcode       == `NOP_opcode  &
             funct3       == `NOP_funct3  &  
@@ -119,6 +119,6 @@ module Control_Status_Register_File
             funct12      == `NOP_funct12 &
             write_index  == `NOP_write_index    
         ))
-            minstret_reg <= minstret_reg + 32'd1;
+            minstret_reg <= minstret_reg + 64'd1;
     end
 endmodule

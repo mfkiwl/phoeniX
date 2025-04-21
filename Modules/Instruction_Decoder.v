@@ -29,8 +29,8 @@ module Instruction_Decoder
     output  wire read_enable_2,
     output  wire write_enable,
 
-    output  wire read_enable_csr,
-    output  wire write_enable_csr
+    output  wire csr_read_enable,
+    output  wire csr_write_enable
 );
 
     assign  opcode  = instruction[ 6 :  0];
@@ -89,7 +89,7 @@ module Instruction_Decoder
                                 (   instruction_type == `J_TYPE     )   ?   `ENABLE     :
                                 `DISABLE;
 
-    assign  read_enable_csr     =   (   (opcode == `SYSTEM) && (funct3 == `CSRRW)   )   ?   `ENABLE :
+    assign  csr_read_enable     =   (   (opcode == `SYSTEM) && (funct3 == `CSRRW)   )   ?   `ENABLE :
                                     (   (opcode == `SYSTEM) && (funct3 == `CSRRS)   )   ?   `ENABLE :
                                     (   (opcode == `SYSTEM) && (funct3 == `CSRRC)   )   ?   `ENABLE :
                                     (   (opcode == `SYSTEM) && (funct3 == `CSRRWI)  )   ?   `ENABLE :
@@ -97,7 +97,7 @@ module Instruction_Decoder
                                     (   (opcode == `SYSTEM) && (funct3 == `CSRRCI)  )   ?   `ENABLE :
                                     `DISABLE;
 
-    assign  write_enable_csr    =   (   (opcode == `SYSTEM) && (funct3 == `CSRRW)   )   ?   `ENABLE & ~(csr_index[11] & csr_index[10])  :
+    assign  csr_write_enable    =   (   (opcode == `SYSTEM) && (funct3 == `CSRRW)   )   ?   `ENABLE & ~(csr_index[11] & csr_index[10])  :
                                     (   (opcode == `SYSTEM) && (funct3 == `CSRRS)   )   ?   `ENABLE & ~(csr_index[11] & csr_index[10])  :
                                     (   (opcode == `SYSTEM) && (funct3 == `CSRRC)   )   ?   `ENABLE & ~(csr_index[11] & csr_index[10])  :
                                     (   (opcode == `SYSTEM) && (funct3 == `CSRRWI)  )   ?   `ENABLE & ~(csr_index[11] & csr_index[10])  :

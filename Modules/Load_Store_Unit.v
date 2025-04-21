@@ -31,12 +31,12 @@ module Load_Store_Unit
     
     // Memory Interface Enable Signal Generation
     assign  memory_interface_enable     = (opcode == `LOAD || opcode == `STORE) ? `ENABLE : `DISABLE;
-    assign  memory_interface_address    = (opcode == `LOAD || opcode == `STORE) ? {address[31 : 2], 2'b00} : 'bz;
+    assign  memory_interface_address    = (opcode == `LOAD || opcode == `STORE) ? {address[31 : 2], 2'b00} : 32'bz;
 
     // Memory State and Frame Mask Generation
     assign  memory_interface_state =    (   opcode == `LOAD    ) ? `READ    :
                                         (   opcode == `STORE   ) ? `WRITE   :
-                                        'bz;
+                                        1'bz;
 
     assign  memory_interface_frame_mask =   (   funct3 == `BYTE                 ||
                                                 funct3 == `BYTE_UNSIGNED        )   ?   {                   
@@ -53,7 +53,7 @@ module Load_Store_Unit
                                                                                         address[1]
                                                                                         }       :
                                             (   funct3 == `WORD                 )   ?   4'b1111 :
-                                            'bz;
+                                            4'bz;
 
     wire    [31 : 0] load_data_value;
 
@@ -70,7 +70,7 @@ module Load_Store_Unit
                                     (   (funct3 == `HALFWORD_UNSIGNED   ) && (memory_interface_frame_mask == 4'b0011)   )   ?   {{16'd0}, memory_interface_data[31 : 16]}                           :
                                     (   (funct3 == `HALFWORD_UNSIGNED   ) && (memory_interface_frame_mask == 4'b1100)   )   ?   {{16'd0}, memory_interface_data[15 :  0]}                           :
                                     (   (funct3 == `WORD)                                                               )   ?   memory_interface_data                                               :
-                                    'bz;
+                                    32'bz;
     
     wire    [31 : 0] store_data_value;
 
@@ -81,8 +81,8 @@ module Load_Store_Unit
                                     (   (funct3 == `HALFWORD    ) && (memory_interface_frame_mask == 4'b0011)   )   ?   {   store_data[15 : 0],         16'bz   }   :
                                     (   (funct3 == `HALFWORD    ) && (memory_interface_frame_mask == 4'b1100)   )   ?   {   16'bz,      store_data[15 : 0]      }   :
                                     (   (funct3 == `WORD        )                                               )   ?   store_data                                  :
-                                    'bz;
+                                    32'bz;
 
-    assign load_data = (opcode == `LOAD) ? load_data_value : 'bz;
-    assign memory_interface_data = (opcode == `STORE) ? store_data_value : 'bz;
+    assign load_data = (opcode == `LOAD) ? load_data_value : 32'bz;
+    assign memory_interface_data = (opcode == `STORE) ? store_data_value : 32'bz;
 endmodule

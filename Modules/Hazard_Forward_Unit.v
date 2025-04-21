@@ -29,7 +29,7 @@ module Hazard_Forward_Unit
 
     assign  forward_data    =   (source_index == destination_index_1 && enable_1 == `ENABLE) ?  data_1  :
                                 (source_index == destination_index_2 && enable_2 == `ENABLE) ?  data_2  :
-                                'bz;
+                                32'bz;
     
     assign  forward_enable  =   (source_index == destination_index_1 && enable_1 == `ENABLE) ?  `ENABLE  :
                                 (source_index == destination_index_2 && enable_2 == `ENABLE) ?  `ENABLE  :

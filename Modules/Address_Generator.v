@@ -30,7 +30,7 @@ module Address_Generator
                                 (   opcode == `JAL      ||
                                     opcode == `AUIPC    ||
                                     opcode == `BRANCH   )   ?   pc  :
-                                    'bz;
+                                    32'bz;
 
     assign adder_input_2    =   (   opcode == `STORE    ||
                                     opcode == `LOAD     ||
@@ -38,7 +38,7 @@ module Address_Generator
                                     opcode == `JAL      ||
                                     opcode == `AUIPC    ||
                                     opcode == `BRANCH   )   ?   immediate  :
-                                    'bz;
+                                    32'bz;
 
     Address_Generator_CLA 
     #(
@@ -58,7 +58,7 @@ module Address_Generator
                             opcode == `JAL      ||
                             opcode == `AUIPC    ||
                             opcode == `BRANCH   )   ?   adder_result  :
-                            'bz;   
+                            32'bz;   
 endmodule
 
 module Address_Generator_CLA 
@@ -77,7 +77,7 @@ module Address_Generator_CLA
     wire [LEN : 0] CarryX;
     wire [LEN - 1 : 0] P;
     wire [LEN - 1 : 0] G;
-
+    
     assign P = A | B;   
     assign G = A & B;   
 
@@ -108,7 +108,7 @@ module Full_Adder_CLA
     output  wire C_out,
     output  wire Sum
 );
-
+    
     assign C_out = (A && B) || (A && C_in) || (B && C_in);
     assign Sum = A ^ B ^ C_in; 
 endmodule

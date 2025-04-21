@@ -72,11 +72,11 @@ module Arithmetic_Logic_Unit
 
     assign  operand_1   =   (   opcode == `OP   || 
                                 opcode == `OP_IMM   ) ? rs1 : 
-                                'bz;
+                                32'bz;
 
     assign  operand_2   =   (   opcode == `OP       ) ? rs2 :
                             (   opcode == `OP_IMM   ) ? immediate :
-                                'bz; 
+                                32'bz; 
 
     // ----------------------------------- //
     // Main R-type and I-type Instrcutions //
@@ -98,7 +98,7 @@ module Arithmetic_Logic_Unit
                                 (   (opcode == `OP)     && (funct3 == `OR)      )   ?   operand_1 | operand_2                                       :
                                 (   (opcode == `OP)     && (funct3 == `AND)     )   ?   operand_1 & operand_2                                       :
                                 (   (opcode == `OP)     && (funct3 == `SR)      )   ?   shift_result                                                :
-                                'bz;
+                                32'bz;
     
     wire          shift_direction;
     wire [31 : 0] shift_input;
@@ -109,7 +109,7 @@ module Arithmetic_Logic_Unit
                                 (   (opcode == `OP_IMM) && (funct3 == `SRI)     )   ?   `RIGHT  :
                                 (   (opcode == `OP)     && (funct3 == `SLL)     )   ?   `LEFT   :
                                 (   (opcode == `OP)     && (funct3 == `SR)      )   ?   `RIGHT  :
-                                'bz;
+                                1'bz;
     
     assign  shift_input     =   (   (opcode == `OP_IMM) && (funct3 == `SLLI)                            )   ?   operand_1           :
                                 (   (opcode == `OP_IMM) && (funct3 == `SRI) && (funct7 == `LOGICAL)     )   ?   operand_1           :
@@ -117,13 +117,14 @@ module Arithmetic_Logic_Unit
                                 (   (opcode == `OP)     && (funct3 == `SLL)                             )   ?   operand_1   :
                                 (   (opcode == `OP)     && (funct3 == `SR) && (funct7 == `LOGICAL)      )   ?   operand_1           :
                                 (   (opcode == `OP)     && (funct3 == `SR) && (funct7 == `ARITHMETIC)   )   ?   $signed(operand_1)  :
-                                'bz;
+                                32'bz;
 
     assign  shift_amount    =   (   (opcode == `OP_IMM) && (funct3 == `SLLI)    )   ?   operand_2[4 : 0]   :
                                 (   (opcode == `OP_IMM) && (funct3 == `SRI)     )   ?   operand_2[4 : 0]   :
                                 (   (opcode == `OP)     && (funct3 == `SLL)     )   ?   operand_2[4 : 0]   :
                                 (   (opcode == `OP)     && (funct3 == `SR)      )   ?   operand_2[4 : 0]   :
-                                'bz;
+                                5'bz;
+                                
     // ----------------------------------------- //
     // Arithmetical Instructions: ADDI, ADD, SUB //
     // ----------------------------------------- //
@@ -149,20 +150,20 @@ module Arithmetic_Logic_Unit
                                 (   (opcode == `OP) && (funct3 == `ADDSUB)                      )   ?   `ENABLE :
                                 `DISABLE;
     
-    assign  adder_C_in       =   (   (opcode == `OP_IMM) && (funct3 == `ADDI)                    )   ?   1'b0    :
+    assign  adder_C_in      =   (   (opcode == `OP_IMM) && (funct3 == `ADDI)                    )   ?   1'b0    :
                                 (   (opcode == `OP) && (funct3 == `ADDSUB) && (funct7 == `ADD)  )   ?   1'b0    :
                                 (   (opcode == `OP) && (funct3 == `ADDSUB) && (funct7 == `SUB)  )   ?   1'b1    :
-                                'bz;
+                                1'bz;
 
     assign  adder_input_1   =   (   (opcode == `OP_IMM) && (funct3 == `ADDI)                    )   ?   operand_1    :
                                 (   (opcode == `OP) && (funct3 == `ADDSUB) && (funct7 == `ADD)  )   ?   operand_1    :
                                 (   (opcode == `OP) && (funct3 == `ADDSUB) && (funct7 == `SUB)  )   ?   operand_1    :
-                                'bz;
+                                32'bz;
 
     assign  adder_input_2   =   (   (opcode == `OP_IMM) && (funct3 == `ADDI)                    )   ?   operand_2       :
                                 (   (opcode == `OP) && (funct3 == `ADDSUB) && (funct7 == `ADD)  )   ?   operand_2       :
                                 (   (opcode == `OP) && (funct3 == `ADDSUB) && (funct7 == `SUB)  )   ?   ~operand_2      :
-                                'bz;
+                                32'bz;
 
     assign adder_0_enable = (   adder_enable && (control_status_register[2 : 1] == 2'b00)   ) ? `ENABLE : `DISABLE;
     assign adder_1_enable = (   adder_enable && (control_status_register[2 : 1] == 2'b01)   ) ? `ENABLE : `DISABLE;

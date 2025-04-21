@@ -53,5 +53,5 @@ module Register_Loading_Table
         end    
     end
 
-    assign read_data = (read_enable) ? Loading_Table[read_index] : 'bz;
+    assign read_data = (read_enable) ? Loading_Table[read_index] : 32'bz;
 endmodule
