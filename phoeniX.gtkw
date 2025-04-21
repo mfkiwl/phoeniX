@@ -1,25 +1,22 @@
 [*]
 [*] GTKWave Analyzer v3.3.103 (w)1999-2019 BSI
-[*] Mon Apr 14 20:53:06 2025
+[*] Mon Apr 21 18:23:36 2025
 [*]
 [dumpfile] "/home/faraz/git/phoeniX/phoeniX.vcd"
-[dumpfile_mtime] "Mon Apr 14 20:50:58 2025"
-[dumpfile_size] 3846511
+[dumpfile_mtime] "Mon Apr 21 18:10:51 2025"
+[dumpfile_size] 13476997
 [savefile] "/home/faraz/git/phoeniX/phoeniX.gtkw"
 [timestart] 0
 [size] 1848 1016
 [pos] -1 -1
-*-3.999429 83 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
-[treeopen] phoeniX_Testbench.
-[treeopen] phoeniX_Testbench.uut.fetch_unit.
-[treeopen] phoeniX_Testbench.uut.load_store_unit.
-[treeopen] phoeniX_Testbench.uut.register_file.
+*-4.798242 125 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] phoeniX_Testbench.uut.
 [sst_width] 48
-[signals_width] 487
+[signals_width] 562
 [sst_expanded] 0
-[sst_vpaned_height] 407
+[sst_vpaned_height] 191
 @28
-phoeniX_Testbench.reset
+phoeniX_Testbench.uut.reset
 phoeniX_Testbench.uut.fetch_unit.enable
 @200
 -
@@ -28,10 +25,12 @@ phoeniX_Testbench.uut.clk
 @200
 -
 @800028
-phoeniX_Testbench.uut.stall_condition[1:2]
+phoeniX_Testbench.uut.stall_condition[2:1]
 @28
-(0)phoeniX_Testbench.uut.stall_condition[1:2]
-(1)phoeniX_Testbench.uut.stall_condition[1:2]
+(0)phoeniX_Testbench.uut.stall_condition[2:1]
+(1)phoeniX_Testbench.uut.stall_condition[2:1]
+@1001200
+-group_end
 @200
 -
 -Imem Interface Signals
@@ -41,9 +40,7 @@ phoeniX_Testbench.uut.instruction_memory_interface_enable
 phoeniX_Testbench.uut.instruction_memory_interface_state
 @22
 phoeniX_Testbench.uut.instruction_memory_interface_address[31:0]
-@28
 phoeniX_Testbench.uut.instruction_memory_interface_frame_mask[3:0]
-@22
 phoeniX_Testbench.uut.instruction_memory_interface_data[31:0]
 @200
 -
@@ -52,7 +49,15 @@ phoeniX_Testbench.uut.instruction_memory_interface_data[31:0]
 @22
 phoeniX_Testbench.uut.pc_FE_reg[31:0]
 phoeniX_Testbench.uut.next_pc_FE_wire[31:0]
+@200
+-
+@22
 phoeniX_Testbench.uut.pc_write_value[31:0]
+@28
+phoeniX_Testbench.uut.jump_branch_enable_EX_wire
+@200
+-
+@22
 phoeniX_Testbench.uut.instruction[31:0]
 @200
 -
@@ -62,9 +67,6 @@ phoeniX_Testbench.uut.instruction[31:0]
 phoeniX_Testbench.uut.clk
 @22
 phoeniX_Testbench.uut.pc_DE_reg[31:0]
-@1001200
--group_end
-@22
 phoeniX_Testbench.uut.next_pc_DE_reg[31:0]
 @200
 -
@@ -74,32 +76,30 @@ phoeniX_Testbench.uut.instruction_DE_reg[31:0]
 phoeniX_Testbench.uut.instruction_type_DE_wire[2:0]
 @200
 -
-@22
-phoeniX_Testbench.uut.opcode_DE_wire[6:0]
 @28
+phoeniX_Testbench.uut.opcode_DE_wire[6:0]
 phoeniX_Testbench.uut.funct3_DE_wire[2:0]
-@22
 phoeniX_Testbench.uut.funct7_DE_wire[6:0]
 phoeniX_Testbench.uut.funct12_DE_wire[11:0]
 @200
 -
-@22
+@24
 phoeniX_Testbench.uut.immediate_DE_wire[31:0]
 @200
 -
-@22
+@24
 phoeniX_Testbench.uut.read_index_1_DE_wire[4:0]
 @28
 phoeniX_Testbench.uut.read_enable_1_DE_wire
 @200
 -
-@22
+@24
 phoeniX_Testbench.uut.read_index_2_DE_wire[4:0]
 @28
 phoeniX_Testbench.uut.read_enable_2_DE_wire
 @200
 -
-@22
+@24
 phoeniX_Testbench.uut.write_index_DE_wire[4:0]
 @28
 phoeniX_Testbench.uut.write_enable_DE_wire
@@ -125,10 +125,12 @@ phoeniX_Testbench.uut.rs2_DE_wire[31:0]
 -
 @22
 phoeniX_Testbench.uut.csr_index_DE_wire[11:0]
+@28
+phoeniX_Testbench.uut.csr_read_enable_DE_wire
+@22
 phoeniX_Testbench.uut.csr_data_DE_wire[31:0]
 @28
-phoeniX_Testbench.uut.read_enable_csr_DE_wire
-phoeniX_Testbench.uut.write_enable_csr_DE_wire
+phoeniX_Testbench.uut.csr_write_enable_DE_wire
 @200
 -
 -EXECUTE
@@ -147,69 +149,34 @@ phoeniX_Testbench.uut.funct7_EX_reg[6:0]
 phoeniX_Testbench.uut.funct12_EX_reg[11:0]
 @200
 -
-@c00024
-phoeniX_Testbench.uut.immediate_EX_reg[31:0]
-@28
-(0)phoeniX_Testbench.uut.immediate_EX_reg[31:0]
-(1)phoeniX_Testbench.uut.immediate_EX_reg[31:0]
-(2)phoeniX_Testbench.uut.immediate_EX_reg[31:0]
-(3)phoeniX_Testbench.uut.immediate_EX_reg[31:0]
-(4)phoeniX_Testbench.uut.immediate_EX_reg[31:0]
-(5)phoeniX_Testbench.uut.immediate_EX_reg[31:0]
-(6)phoeniX_Testbench.uut.immediate_EX_reg[31:0]
-(7)phoeniX_Testbench.uut.immediate_EX_reg[31:0]
-(8)phoeniX_Testbench.uut.immediate_EX_reg[31:0]
-(9)phoeniX_Testbench.uut.immediate_EX_reg[31:0]
-(10)phoeniX_Testbench.uut.immediate_EX_reg[31:0]
-(11)phoeniX_Testbench.uut.immediate_EX_reg[31:0]
-(12)phoeniX_Testbench.uut.immediate_EX_reg[31:0]
-(13)phoeniX_Testbench.uut.immediate_EX_reg[31:0]
-(14)phoeniX_Testbench.uut.immediate_EX_reg[31:0]
-(15)phoeniX_Testbench.uut.immediate_EX_reg[31:0]
-(16)phoeniX_Testbench.uut.immediate_EX_reg[31:0]
-(17)phoeniX_Testbench.uut.immediate_EX_reg[31:0]
-(18)phoeniX_Testbench.uut.immediate_EX_reg[31:0]
-(19)phoeniX_Testbench.uut.immediate_EX_reg[31:0]
-(20)phoeniX_Testbench.uut.immediate_EX_reg[31:0]
-(21)phoeniX_Testbench.uut.immediate_EX_reg[31:0]
-(22)phoeniX_Testbench.uut.immediate_EX_reg[31:0]
-(23)phoeniX_Testbench.uut.immediate_EX_reg[31:0]
-(24)phoeniX_Testbench.uut.immediate_EX_reg[31:0]
-(25)phoeniX_Testbench.uut.immediate_EX_reg[31:0]
-(26)phoeniX_Testbench.uut.immediate_EX_reg[31:0]
-(27)phoeniX_Testbench.uut.immediate_EX_reg[31:0]
-(28)phoeniX_Testbench.uut.immediate_EX_reg[31:0]
-(29)phoeniX_Testbench.uut.immediate_EX_reg[31:0]
-(30)phoeniX_Testbench.uut.immediate_EX_reg[31:0]
-(31)phoeniX_Testbench.uut.immediate_EX_reg[31:0]
-@1401200
--group_end
 @24
+phoeniX_Testbench.uut.immediate_EX_reg[31:0]
 phoeniX_Testbench.uut.rs1_EX_reg[31:0]
 phoeniX_Testbench.uut.rs2_EX_reg[31:0]
 @200
 -
-@25
-phoeniX_Testbench.uut.write_index_EX_reg[4:0]
-phoeniX_Testbench.uut.write_enable_EX_reg
-@200
--
-@24
-phoeniX_Testbench.uut.address_EX_wire[31:0]
 @28
-phoeniX_Testbench.uut.jump_branch_enable_EX_wire
+phoeniX_Testbench.uut.mul_busy_EX_wire
+phoeniX_Testbench.uut.div_busy_EX_wire
 @200
 -
 @24
 phoeniX_Testbench.uut.alu_output_EX_wire[31:0]
 phoeniX_Testbench.uut.mul_output_EX_wire[31:0]
 phoeniX_Testbench.uut.div_output_EX_wire[31:0]
-phoeniX_Testbench.uut.execution_result_EX_reg[31:0]
+phoeniX_Testbench.uut.execution_result_EX_wire[31:0]
 @200
 -
+@24
+phoeniX_Testbench.uut.write_index_EX_reg[4:0]
 @28
-phoeniX_Testbench.uut.mul_busy_EX_wire
-phoeniX_Testbench.uut.div_busy_EX_wire
+phoeniX_Testbench.uut.write_enable_EX_reg
+@200
+-
+@22
+phoeniX_Testbench.uut.address_EX_wire[31:0]
+@28
+phoeniX_Testbench.uut.jump_branch_enable_EX_wire
 @200
 -
 @22
@@ -224,44 +191,43 @@ phoeniX_Testbench.uut.read_index_1_EX_reg[4:0]
 -
 @28
 phoeniX_Testbench.uut.clk
-phoeniX_Testbench.uut.stall_condition[1:2]
 @22
 phoeniX_Testbench.uut.pc_MW_reg[31:0]
-@28
-phoeniX_Testbench.uut.instruction_type_MW_reg[2:0]
+phoeniX_Testbench.uut.next_pc_MW_reg[31:0]
 @200
 -
-@22
-phoeniX_Testbench.uut.opcode_MW_reg[6:0]
 @28
+phoeniX_Testbench.uut.stall_condition[2:1]
+@200
+-
+@28
+phoeniX_Testbench.uut.opcode_MW_reg[6:0]
 phoeniX_Testbench.uut.funct3_MW_reg[2:0]
-@22
 phoeniX_Testbench.uut.funct7_MW_reg[6:0]
 phoeniX_Testbench.uut.funct12_MW_reg[11:0]
 @200
 -
 @22
 phoeniX_Testbench.uut.execution_result_MW_reg[31:0]
-phoeniX_Testbench.uut.immediate_MW_reg[31:0]
+phoeniX_Testbench.uut.next_pc_MW_reg[31:0]
+phoeniX_Testbench.uut.address_MW_reg[31:0]
 phoeniX_Testbench.uut.load_data_MW_wire[31:0]
+phoeniX_Testbench.uut.immediate_MW_reg[31:0]
+phoeniX_Testbench.uut.csr_rd_MW_reg[31:0]
 @200
 -
+@22
+phoeniX_Testbench.uut.write_data_MW_wire[31:0]
 @24
-phoeniX_Testbench.uut.write_data_MW_reg[31:0]
 phoeniX_Testbench.uut.write_index_MW_reg[4:0]
 @28
 phoeniX_Testbench.uut.write_enable_MW_reg
 @200
 -
 @22
-phoeniX_Testbench.uut.address_MW_reg[31:0]
-@200
--
-@22
-phoeniX_Testbench.uut.load_store_unit.load_data[31:0]
 phoeniX_Testbench.uut.rs2_MW_reg[31:0]
+phoeniX_Testbench.uut.load_store_unit.load_data[31:0]
 phoeniX_Testbench.uut.load_store_unit.store_data[31:0]
-phoeniX_Testbench.uut.load_store_unit.store_data_reg[31:0]
 @200
 -
 -Dmem Interface Signals
@@ -269,23 +235,21 @@ phoeniX_Testbench.uut.load_store_unit.store_data_reg[31:0]
 @28
 phoeniX_Testbench.uut.data_memory_interface_enable
 phoeniX_Testbench.uut.data_memory_interface_state
-@24
-phoeniX_Testbench.uut.data_memory_interface_address[31:0]
-@28
-phoeniX_Testbench.uut.data_memory_interface_frame_mask[3:0]
 @22
+phoeniX_Testbench.uut.data_memory_interface_address[31:0]
+phoeniX_Testbench.uut.data_memory_interface_frame_mask[3:0]
 phoeniX_Testbench.uut.data_memory_interface_data[31:0]
 @200
 -
--REGISTERS
+-Registers
 -
-@24
+@22
 phoeniX_Testbench.uut.register_file.write_data[31:0]
+@24
 phoeniX_Testbench.uut.register_file.write_index[4:0]
 @28
 phoeniX_Testbench.uut.register_file.write_enable
 @200
--
 -
 @24
 phoeniX_Testbench.x0_zero[31:0]
@@ -325,14 +289,6 @@ phoeniX_Testbench.x31_t6[31:0]
 -Register Loading Table
 -
 @22
-phoeniX_Testbench.uut.register_loading_table.write_data[31:0]
-@24
-phoeniX_Testbench.uut.register_loading_table.write_index[4:0]
-@28
-phoeniX_Testbench.uut.register_loading_table.write_enable
-@200
--
-@22
 phoeniX_Testbench.ls_x0_zero[31:0]
 phoeniX_Testbench.ls_x1_ra[31:0]
 phoeniX_Testbench.ls_x2_sp[31:0]
@@ -367,7 +323,7 @@ phoeniX_Testbench.ls_x30_t5[31:0]
 phoeniX_Testbench.ls_x31_t6[31:0]
 @200
 -
--CSR
+-Control Status Registers
 -
 @22
 phoeniX_Testbench.alu_csr[31:0]
@@ -375,10 +331,9 @@ phoeniX_Testbench.mul_csr[31:0]
 phoeniX_Testbench.div_csr[31:0]
 @200
 -
-@24
+@22
 phoeniX_Testbench.mcycle[63:0]
+@23
 phoeniX_Testbench.minstret[63:0]
-@200
--
 [pattern_trace] 1
 [pattern_trace] 0
