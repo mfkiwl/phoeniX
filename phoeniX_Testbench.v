@@ -2,7 +2,7 @@
 //  A Reconfigurable Embedded Platform for Approximate Computing and Fault-Tolerant Applications
 
 //  Description: Test environment for phoeniX processor (iverilog)
-//  Copyright 2024 Iran University of Science and Technology. <phoenix.digital.electronics@gmail.com>
+//  Copyright 2025 Iran University of Science and Technology. <phoenix.digital.electronics@gmail.com>
 
 //  Permission to use, copy, modify, and/or distribute this software for any
 //  purpose with or without fee is hereby granted, provided that the above
@@ -16,7 +16,7 @@
 `endif /*FIRMWARE*/
 
 `ifndef START_ADDRESS
-    `define START_ADDRESS   32'h0000_0000
+    `define START_ADDRESS   32'hFFFF_FFFF
 `endif /*START_ADDRESS*/
 
 `ifndef DUMPFILE_PATH
@@ -31,10 +31,13 @@ module phoeniX_Testbench;
     parameter CLK_PERIOD = 2;
     reg clk = 1'b1;
     initial begin forever #(CLK_PERIOD/2) clk = ~clk; end
-    //initial #(20000 * CLK_PERIOD) $finish;
 
+    ///////////
+    // Reset //
+    ///////////
     reg reset = `ENABLE;
-    
+    initial begin #(10 * CLK_PERIOD) reset = `DISABLE; end
+
     //////////////////////////////////////////
     // Instruction Memory Interface Signals //
     //////////////////////////////////////////
@@ -58,29 +61,30 @@ module phoeniX_Testbench;
 
     phoeniX 
     #(
-        .RESET_ADDRESS(`START_ADDRESS),
-        .M_EXTENSION(1'b1),
-        .E_EXTENSION(1'b0)
+        .RESET_ADDRESS								(		`START_ADDRESS								),
+		.M_EXTENSION								(		`DISABLE									),
+        .E_EXTENSION								(		`DISABLE									)
     ) 
     uut
     (
-        .clk(clk),
-        .reset(reset),
+        .clk										(		clk									        ),
+        .reset										(		reset										),
 
-        .instruction_memory_interface_enable(instruction_memory_interface_enable),
-        .instruction_memory_interface_state(instruction_memory_interface_state),
-        .instruction_memory_interface_address(instruction_memory_interface_address),
-        .instruction_memory_interface_frame_mask(instruction_memory_interface_frame_mask),
-        .instruction_memory_interface_data(instruction_memory_interface_data),
+        .instruction_memory_interface_enable		(		instruction_memory_interface_enable			),
+        .instruction_memory_interface_state			(		instruction_memory_interface_state			),
+        .instruction_memory_interface_address		(		instruction_memory_interface_address		),
+        .instruction_memory_interface_frame_mask	(		instruction_memory_interface_frame_mask		),
+        .instruction_memory_interface_data			(		instruction_memory_interface_data			),
 
-        .data_memory_interface_enable(data_memory_interface_enable),
-        .data_memory_interface_state(data_memory_interface_state),
-        .data_memory_interface_address(data_memory_interface_address),
-        .data_memory_interface_frame_mask(data_memory_interface_frame_mask),
-        .data_memory_interface_data(data_memory_interface_data)
+        .data_memory_interface_enable				(		data_memory_interface_enable				),
+        .data_memory_interface_state				(		data_memory_interface_state					),
+        .data_memory_interface_address				(		data_memory_interface_address				),
+        .data_memory_interface_frame_mask			(		data_memory_interface_frame_mask			),
+        .data_memory_interface_data					(		data_memory_interface_data					)
     );
-    
+
     // Debug Wires for Register File
+    
     `ifndef DISABLE_DEBUG
         wire [31 : 0] x0_zero 	= uut.register_file.Registers[0];
         wire [31 : 0] x1_ra 	= uut.register_file.Registers[1];
@@ -162,14 +166,11 @@ module phoeniX_Testbench;
             log_file = $fopen("Dhrystone/dhrystone.log", "w");  
         end
     `endif /*DHRYSTONE_LOG*/
-    
+
     initial
     begin
         $dumpfile(`DUMPFILE_PATH);
         $dumpvars(0, phoeniX_Testbench);
-        // Reset
-        repeat (5) @(posedge clk);
-		reset <= `DISABLE;
     end
 
     integer enable_high_count = 0;
@@ -192,75 +193,67 @@ module phoeniX_Testbench;
     initial $readmemh(`FIRMWARE, Memory);
 
     // Instruction Memory Interface Behaviour
-    always @(negedge clk)
+    always @(posedge clk or negedge clk)
     begin
-        if (!instruction_memory_interface_enable) instruction_memory_interface_data <= 32'bz;
+        if (clk) instruction_memory_interface_data <= 32'd0;
         else
         begin
-            if (instruction_memory_interface_state == `READ)
-                instruction_memory_interface_data <= Memory[instruction_memory_interface_address >> 2];
-        end    
+            if (!instruction_memory_interface_enable) instruction_memory_interface_data <= 32'd0;
+            else
+            begin
+                if (instruction_memory_interface_state == `READ)
+                    instruction_memory_interface_data <= Memory[instruction_memory_interface_address >> 2];
+            end    
+        end
     end
-
-    always @(posedge clk) 
-    begin
-        instruction_memory_interface_data <= 32'bz;
-    end
-
 
     // Data Memory Interface Behaviour
-    always @(negedge clk)
+    always @(posedge clk or negedge clk)
     begin
-        if (!data_memory_interface_enable)
-        begin
-             data_memory_interface_data_reg <= 32'bz;
-        end
+        if (clk) data_memory_interface_data_reg <= 32'd0;
         else
         begin
-            if (data_memory_interface_state == `WRITE) 
+            if (!data_memory_interface_enable)
             begin
-                if (data_memory_interface_frame_mask[3]) Memory[data_memory_interface_address >> 2][ 7 :  0] <= data_memory_interface_data[ 7 :  0];
-                if (data_memory_interface_frame_mask[2]) Memory[data_memory_interface_address >> 2][15 :  8] <= data_memory_interface_data[15 :  8];
-                if (data_memory_interface_frame_mask[1]) Memory[data_memory_interface_address >> 2][23 : 16] <= data_memory_interface_data[23 : 16];
-                if (data_memory_interface_frame_mask[0]) Memory[data_memory_interface_address >> 2][31 : 24] <= data_memory_interface_data[31 : 24];
-            end 
-            if (data_memory_interface_state == `READ)
-            begin
-                data_memory_interface_data_reg <= Memory[data_memory_interface_address >> 2];
+                data_memory_interface_data_reg <= 32'd0;
             end
-        end    
+            else
+            begin
+                if (data_memory_interface_state == `WRITE) 
+                begin
+                    if (data_memory_interface_frame_mask[3]) Memory[data_memory_interface_address >> 2][ 7 :  0] <= data_memory_interface_data[ 7 :  0];
+                    if (data_memory_interface_frame_mask[2]) Memory[data_memory_interface_address >> 2][15 :  8] <= data_memory_interface_data[15 :  8];
+                    if (data_memory_interface_frame_mask[1]) Memory[data_memory_interface_address >> 2][23 : 16] <= data_memory_interface_data[23 : 16];
+                    if (data_memory_interface_frame_mask[0]) Memory[data_memory_interface_address >> 2][31 : 24] <= data_memory_interface_data[31 : 24];
+                end 
+                if (data_memory_interface_state == `READ)
+                begin
+                    data_memory_interface_data_reg <= Memory[data_memory_interface_address >> 2];
+                end
+            end    
 
-        ////////////////////////////////////
-        // Environment Support for printf //
-        ////////////////////////////////////
-        if (data_memory_interface_address == 32'h1000_0000)
-        begin
-            $write("%c", data_memory_interface_data);
-            $fflush();
+            ////////////////////////////////////
+            // Environment Support for printf //
+            ////////////////////////////////////
+            if (data_memory_interface_address == 32'h1000_0000)
+            begin
+                $write("%c", data_memory_interface_data[7 : 0]);
 
             `ifdef DHRYSTONE_LOG
                 $fwrite(log_file, "%c", data_memory_interface_data);
             `endif /*DHRYSTONE_LOG*/
+            end
         end
-    end
-
-    always @(posedge clk) 
-    begin
-        data_memory_interface_data_reg <= 32'bz;
     end
 
     //////////////////
     // System Calls //
     //////////////////
-
-    always @(*) 
+    always @(posedge clk) 
     begin
         if (uut.opcode_MW_reg == `SYSTEM && uut.funct12_MW_reg == `EBREAK) 
         begin
-            repeat (32) @(posedge clk);
-            reset <= `ENABLE;
-            repeat (5) @(posedge clk);
-            $display("\n--> EXECUTION FINISHED <--\n");
+            $display("\n--> EXECUTION FINISHED @ %t <--\n", $time);
             $display("Firmware File: %s\n", `FIRMWARE);
             $display("ON  TIME:\t%d\nOFF TIME:\t%d", enable_high_count * CLK_PERIOD, enable_low_count * CLK_PERIOD);
             $display("CPU USAGE:\t%d%%", 100 *(enable_high_count * CLK_PERIOD)/(enable_high_count * CLK_PERIOD + enable_low_count * CLK_PERIOD));
