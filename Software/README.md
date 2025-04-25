@@ -2,7 +2,7 @@ Software
 ====================
 <div align="justify">
 
-This directory contains source files the assembler, sample codes and user codes which will be executed on the phoeniX processor. In this directory, there are three subdirectories included:
+This directory contains source files the assembler, sample codes and user codes which will be executed on the phoeniX processor. In this directory, there are four subdirectories included:
 
 - `AssembleX`
 - `Sample_Assembly_Codes`
@@ -15,7 +15,7 @@ This directory contains source files the assembler, sample codes and user codes 
 
 <div align="justify">
 
-The `AssembleX` software is an assembly code executant designed for the [phoeniX project](https://github.com/phoeniX-Digital-Design/phoeniX). AssembleX is powered by [riscv-assembler](https://github.com/celebi-pkg/riscv-assembler) and [PQR5ASM](https://github.com/iammituraj/pqr5asm) open-source projects. AssembleX V3.0 supports `RV32IM` extenstions of standard RISC-V ISA.
+The `AssembleX` software assistant is a RISC-V assembler designed for the [phoeniX project](https://github.com/phoeniX-Digital-Design/phoeniX). AssembleX is powered by [riscv-assembler](https://github.com/celebi-pkg/riscv-assembler) and [PQR5ASM](https://github.com/iammituraj/pqr5asm) open-source projects. AssembleX V3.0 supports `RV32IM` extentions of standard RISC-V ISA.
 
 </div>
 
@@ -31,7 +31,7 @@ For example:
 ```shell
 python AssembleX.py sample fibonacci
 ```
-After execution of this script, firmware file will be generated and this final file can be directly fed to our Verilog testbench. AssembleX automatically runs the testbench and calls upon gtkwave to display the selected signals in the waveform viewer application, gtkwave.
+After execution of this script, a firmware file will be generated and this final file can be directly fed to our Verilog testbench. AssembleX automatically runs the testbench and calls upon gtkwave to display the selected signals in the waveform viewer application.
 </div>
 
 #### Running Your Own Code
@@ -43,7 +43,7 @@ In order to run your own code on phoeniX, create a directory named to your proje
 python AssembleX.py code my_project
 ```
 
-Provided that you name your project sub-directory correctly the AssembleX software will create `my_project_firmware.hex` and fed it directly to the testbench of phoeniX processor. After that, iverilog and GTKWave are used to compile the design and view the selected waveforms.
+Provided that you name your project sub-directory correctly, the AssembleX software will create `my_project_firmware.hex` and fed it directly to the testbench of phoeniX processor. After that, iverilog and GTKWave are used to compile the design and view the selected waveforms.
 
 </div>
 
@@ -54,7 +54,7 @@ Provided that you name your project sub-directory correctly the AssembleX softwa
 
 The directory `/Software` contains sample codes for some conventional programs and algorithms in both Assembly and C which can be found in `/Sample_Assembly_Codes` and `/Sample_C_Codes` sub-directories respectively. 
 
-phoeniX convention for naming projects is as follows; The main source file of the project is named as `{project.c}` or `{project.s}`. This file along other required source files are kept in one directory which has the same name as the project itself, i.e. `/project`.
+The phoeniX convention for naming projects is as follows; The main source file of the project is named as `{project.c}` or `{project.s}`. This file along other required source files are kept in one directory which has the same name as the project itself, i.e. `/project`.
 
 Sample projects provided at this time are `bubble_sort`, `fibonacci`, `find_max_array`, `sum1ton`.
 To run any of these sample projects simply run `make sample` followed by the name of the project passed as a variable named project to the Makefile.
