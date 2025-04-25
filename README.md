@@ -92,11 +92,11 @@ Permission to use, copy, modify, and/or distribute this software for any purpose
 
 - [Features](#Features)
 - [Directory Map](#Directory-Map)
-- [Core's Structure](#Core-Structure)
+- [Core Structure](#Core-Structure)
 - [Memory Interface](#Memory-Interface)
 - [Building RISC-V Toolchain](#Building-RISC-V-Toolchain)
 - [Execution Flow](#Execution-Flow)
-- [Synthesis Result](#Synthesis-Result)
+- [Implementation](#Implementation)
 
 
 ## Features
