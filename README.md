@@ -148,12 +148,12 @@ repository/
     │   ├── Clock_Generator/
     │   └── ...
     ├── Synthesis/
-    │   ├── Yosys_TSMC180/
+    │   ├── OSU180/
     │   │   ├── layout/
     │   │   ├── synthesis/
     │   │   ├── log/
     │   │   └── ...
-    │   └── DesignCompiler_NanGate45
+    │   └── FreePDK45
     ├── Modules/
     │   ├── Address_Generator.v
     │   ├── Arithmetic_Logic_Unit.v
