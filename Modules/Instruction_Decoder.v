@@ -2,7 +2,7 @@
 //  A Reconfigurable Embedded Platform for Approximate Computing and Fault-Tolerant Applications
 
 //  Description: RV32IEM Instruction Decoder Module
-//  Copyright 2024 Iran University of Science and Technology. <phoenix.digital.electronics@gmail.com>
+//  Copyright 2025 Iran University of Science and Technology. <phoenix.digital.electronics@gmail.com>
 
 //  Permission to use, copy, modify, and/or distribute this software for any
 //  purpose with or without fee is hereby granted, provided that the above
@@ -12,97 +12,96 @@
 
 module Instruction_Decoder 
 (
-    input wire [31 : 0] instruction,
+    input   wire [31 : 0] instruction,
 
-    output reg [ 2 : 0] instruction_type,
-    output reg [ 6 : 0] opcode,
-    output reg [ 2 : 0] funct3,
-    output reg [ 6 : 0] funct7,
-    output reg [11 : 0] funct12,
+    output  wire [ 2 : 0] instruction_type,
+    output  wire [ 6 : 0] opcode,
+    output  wire [ 2 : 0] funct3,
+    output  wire [ 6 : 0] funct7,
+    output  wire [11 : 0] funct12,
 
-    output reg [ 4 : 0] read_index_1,
-    output reg [ 4 : 0] read_index_2,
-    output reg [ 4 : 0] write_index,
-    output reg [11 : 0] csr_index,
+    output  wire [ 4 : 0] read_index_1,
+    output  wire [ 4 : 0] read_index_2,
+    output  wire [ 4 : 0] write_index,
+    output  wire [11 : 0] csr_index,
 
-    output reg read_enable_1,
-    output reg read_enable_2,
-    output reg write_enable,
+    output  wire read_enable_1,
+    output  wire read_enable_2,
+    output  wire write_enable,
 
-    output reg read_enable_csr,
-    output reg write_enable_csr
+    output  wire csr_read_enable,
+    output  wire csr_write_enable
 );
 
-    always @(*) 
-    begin
-        opcode  = instruction[ 6 :  0];
-        funct7  = instruction[31 : 25];
-        funct3  = instruction[14 : 12];
-        funct12 = instruction[31 : 20]; 
-    end
+    assign  opcode  = instruction[ 6 :  0];
+    assign  funct7  = instruction[31 : 25];
+    assign  funct3  = instruction[14 : 12];
+    assign  funct12 = instruction[31 : 20]; 
+
+    assign  read_index_1 = instruction[19 : 15];
+    assign  read_index_2 = instruction[24 : 20];
+    assign  write_index  = instruction[11 :  7];
+    assign  csr_index    = instruction[31 : 20];
+
+    assign  instruction_type    =   ( opcode == `OP         )   ?   `R_TYPE         :
+                                    ( opcode == `OP_FP      )   ?   `R_TYPE         :
+
+                                    ( opcode == `LOAD       )   ?   `I_TYPE         :
+                                    ( opcode == `LOAD_FP    )   ?   `I_TYPE         :
+                                    ( opcode == `OP_IMM     )   ?   `I_TYPE         :
+                                    ( opcode == `OP_IMM_32  )   ?   `I_TYPE         :
+                                    ( opcode == `JALR       )   ?   `I_TYPE         :
+                                    ( opcode == `SYSTEM     )   ?   `I_TYPE         :
+
+                                    ( opcode == `STORE      )   ?   `S_TYPE         :
+                                    ( opcode == `STORE_FP   )   ?   `S_TYPE         :
+
+                                    ( opcode == `BRANCH     )   ?   `B_TYPE         :
+
+                                    ( opcode == `AUIPC      )   ?   `U_TYPE         :
+                                    ( opcode == `LUI        )   ?   `U_TYPE         :
+
+                                    ( opcode == `JAL        )   ?   `J_TYPE         :
+                                    `INVALID_TYPE;
+
+    assign  read_enable_1   =   (   instruction_type == `R_TYPE     )   ?   `ENABLE     :
+                                (   instruction_type == `I_TYPE     )   ?   `ENABLE     :
+                                (   instruction_type == `S_TYPE     )   ?   `ENABLE     :
+                                (   instruction_type == `B_TYPE     )   ?   `ENABLE     :
+                                (   instruction_type == `U_TYPE     )   ?   `DISABLE    :
+                                (   instruction_type == `J_TYPE     )   ?   `DISABLE    :
+                                `DISABLE;
     
-    always @(*) 
-    begin
-        read_index_1 = instruction[19 : 15];
-        read_index_2 = instruction[24 : 20];
-        write_index  = instruction[11 :  7];
-        csr_index    = instruction[31 : 20];
-    end
+    assign  read_enable_2   =   (   instruction_type == `R_TYPE     )   ?   `ENABLE     :
+                                (   instruction_type == `I_TYPE     )   ?   `DISABLE    :
+                                (   instruction_type == `S_TYPE     )   ?   `ENABLE     :
+                                (   instruction_type == `B_TYPE     )   ?   `ENABLE     :
+                                (   instruction_type == `U_TYPE     )   ?   `DISABLE    :
+                                (   instruction_type == `J_TYPE     )   ?   `DISABLE    :
+                                `DISABLE;
+    
+    assign  write_enable    =   (   write_index == 'd0              )   ?   `DISABLE    :
+                                (   instruction_type == `R_TYPE     )   ?   `ENABLE     :
+                                (   instruction_type == `I_TYPE     )   ?   `ENABLE     :
+                                (   instruction_type == `S_TYPE     )   ?   `DISABLE    :
+                                (   instruction_type == `B_TYPE     )   ?   `DISABLE    :
+                                (   instruction_type == `U_TYPE     )   ?   `ENABLE     :
+                                (   instruction_type == `J_TYPE     )   ?   `ENABLE     :
+                                `DISABLE;
 
-    always @(*)
-    begin
-        case (opcode)
-            `OP         : instruction_type = `R_TYPE;
-            `OP_FP      : instruction_type = `R_TYPE;
+    assign  csr_read_enable     =   (   (opcode == `SYSTEM) && (funct3 == `CSRRW)   )   ?   `ENABLE :
+                                    (   (opcode == `SYSTEM) && (funct3 == `CSRRS)   )   ?   `ENABLE :
+                                    (   (opcode == `SYSTEM) && (funct3 == `CSRRC)   )   ?   `ENABLE :
+                                    (   (opcode == `SYSTEM) && (funct3 == `CSRRWI)  )   ?   `ENABLE :
+                                    (   (opcode == `SYSTEM) && (funct3 == `CSRRSI)  )   ?   `ENABLE :
+                                    (   (opcode == `SYSTEM) && (funct3 == `CSRRCI)  )   ?   `ENABLE :
+                                    `DISABLE;
 
-            `LOAD       : instruction_type = `I_TYPE;
-            `LOAD_FP    : instruction_type = `I_TYPE;
-            `OP_IMM     : instruction_type = `I_TYPE;
-            `OP_IMM_32  : instruction_type = `I_TYPE;
-            `JALR       : instruction_type = `I_TYPE;
-            `SYSTEM     : instruction_type = `I_TYPE; 
-
-            `STORE      : instruction_type = `S_TYPE;
-            `STORE_FP   : instruction_type = `S_TYPE;
-
-            `BRANCH     : instruction_type = `B_TYPE;
-
-            `AUIPC      : instruction_type = `U_TYPE;
-            `LUI        : instruction_type = `U_TYPE;
-
-            `JAL        : instruction_type = `J_TYPE;
-            default     : instruction_type = 3'bz;
-        endcase
-    end
-
-    always @(*) 
-    begin
-        // Register File read/write enable signals evaluation
-        case (instruction_type)
-            `R_TYPE : begin read_enable_1 = `ENABLE;    read_enable_2 = `ENABLE;    write_enable = `ENABLE;     end
-            `I_TYPE : begin read_enable_1 = `ENABLE;    read_enable_2 = `DISABLE;   write_enable = `ENABLE;     end
-            `S_TYPE : begin read_enable_1 = `ENABLE;    read_enable_2 = `ENABLE;    write_enable = `DISABLE;    end
-            `B_TYPE : begin read_enable_1 = `ENABLE;    read_enable_2 = `ENABLE;    write_enable = `DISABLE;    end
-            `U_TYPE : begin read_enable_1 = `DISABLE;   read_enable_2 = `DISABLE;   write_enable = `ENABLE;     end
-            `J_TYPE : begin read_enable_1 = `DISABLE;   read_enable_2 = `DISABLE;   write_enable = `ENABLE;     end 
-            default : begin read_enable_1 = `DISABLE;   read_enable_2 = `DISABLE;   write_enable = `DISABLE;    end // Raise Exception
-        endcase    
-
-        // Disable Write Signal when destination is x0
-        if (write_index == 5'b00000) write_enable = `DISABLE;
-    end
-
-    always @(*) 
-    begin
-        // CSR register file read/write enable signals evaluation
-        case ({opcode, funct3})
-            {`SYSTEM, `CSRRW}   : begin read_enable_csr = `ENABLE;  write_enable_csr = `ENABLE & ~(csr_index[11] & csr_index[10]); end 
-            {`SYSTEM, `CSRRS}   : begin read_enable_csr = `ENABLE;  write_enable_csr = `ENABLE & ~(csr_index[11] & csr_index[10]); end 
-            {`SYSTEM, `CSRRC}   : begin read_enable_csr = `ENABLE;  write_enable_csr = `ENABLE & ~(csr_index[11] & csr_index[10]); end 
-            {`SYSTEM, `CSRRWI}  : begin read_enable_csr = `ENABLE;  write_enable_csr = `ENABLE & ~(csr_index[11] & csr_index[10]); end 
-            {`SYSTEM, `CSRRSI}  : begin read_enable_csr = `ENABLE;  write_enable_csr = `ENABLE & ~(csr_index[11] & csr_index[10]); end 
-            {`SYSTEM, `CSRRCI}  : begin read_enable_csr = `ENABLE;  write_enable_csr = `ENABLE & ~(csr_index[11] & csr_index[10]); end 
-            default             : begin read_enable_csr = `DISABLE; write_enable_csr = `DISABLE; end
-        endcase  
-    end
+    assign  csr_write_enable    =   (   (opcode == `SYSTEM) && (funct3 == `CSRRW)   )   ?   `ENABLE & ~(csr_index[11] & csr_index[10])  :
+                                    (   (opcode == `SYSTEM) && (funct3 == `CSRRS)   )   ?   `ENABLE & ~(csr_index[11] & csr_index[10])  :
+                                    (   (opcode == `SYSTEM) && (funct3 == `CSRRC)   )   ?   `ENABLE & ~(csr_index[11] & csr_index[10])  :
+                                    (   (opcode == `SYSTEM) && (funct3 == `CSRRWI)  )   ?   `ENABLE & ~(csr_index[11] & csr_index[10])  :
+                                    (   (opcode == `SYSTEM) && (funct3 == `CSRRSI)  )   ?   `ENABLE & ~(csr_index[11] & csr_index[10])  :
+                                    (   (opcode == `SYSTEM) && (funct3 == `CSRRCI)  )   ?   `ENABLE & ~(csr_index[11] & csr_index[10])  :
+                                    `DISABLE;
 endmodule

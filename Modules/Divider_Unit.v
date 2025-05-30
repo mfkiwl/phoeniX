@@ -81,6 +81,11 @@ module Divider_Unit
     wire [31 : 0] result;
     wire [31 : 0] remainder;
 
+    wire divider_0_enable_wire;
+    wire divider_1_enable_wire;
+    wire divider_2_enable_wire;
+    wire divider_3_enable_wire;
+    
     reg  divider_0_enable;
     reg  divider_1_enable;
     reg  divider_2_enable;
@@ -204,30 +209,30 @@ module Divider_Unit
             signal_zero:   
                 begin 
                     if (state_machine_enable) 
-                    begin reset_enable_signals <= 0; next_state <= signal_high; reset_controller_enable <= 0; end
+                    begin reset_enable_signals = 0; next_state = signal_high; reset_controller_enable = 0; end
                     else if (!state_machine_enable)
-                    begin reset_enable_signals <= 0; next_state <= signal_low;  reset_controller_enable <= 0; end
+                    begin reset_enable_signals = 0; next_state = signal_low;  reset_controller_enable = 0; end
                 end
             signal_high:   
                 begin 
                     if (state_machine_enable) 
-                    begin reset_enable_signals <= 1; next_state <= signal_low; reset_controller_enable <= 0; end
+                    begin reset_enable_signals = 1; next_state = signal_low; reset_controller_enable = 0; end
                     else if (!state_machine_enable)
-                    begin reset_enable_signals <= 0; next_state <= signal_low; reset_controller_enable <= 0; end 
+                    begin reset_enable_signals = 0; next_state = signal_low; reset_controller_enable = 0; end 
                 end
             signal_low:    
                 begin 
                     if (state_machine_enable) 
-                    begin reset_enable_signals <= 0; next_state <= signal_low; reset_controller_enable <= 1; end
+                    begin reset_enable_signals = 0; next_state = signal_low; reset_controller_enable = 1; end
                     else if (!state_machine_enable)
-                    begin reset_enable_signals <= 0; next_state <= signal_low; reset_controller_enable <= 0; end
+                    begin reset_enable_signals = 0; next_state = signal_low; reset_controller_enable = 0; end
                 end
             default:       
                 begin 
                     if (state_machine_enable) 
-                    begin reset_enable_signals <= 0; next_state <= signal_low; reset_controller_enable <= 1; end
+                    begin reset_enable_signals = 0; next_state = signal_low; reset_controller_enable = 1; end
                     else if (!state_machine_enable)
-                    begin reset_enable_signals <= 0; next_state <= signal_low; reset_controller_enable <= 0; end
+                    begin reset_enable_signals = 0; next_state = signal_low; reset_controller_enable = 0; end
                 end
         endcase
     end
@@ -241,7 +246,7 @@ module Divider_Unit
     reg circuits_input_enable = 0;
     wire enables_combine = (divider_0_enable | divider_1_enable | divider_2_enable | divider_3_enable);
     always @(posedge enables_combine) 
-    begin circuits_input_enable = 1; end
+    begin circuits_input_enable <= 1; end
     assign divider_input_1  = (circuits_input_enable) ? input_1 : 32'bz;
     assign divider_input_2  = (circuits_input_enable) ? input_2 : 32'bz;
     assign divider_accuracy = (circuits_input_enable) ? (control_status_register[10 : 3] | {8{~control_status_register[0]}}) : 8'bz;
@@ -272,9 +277,9 @@ module Divider_Unit
                 .enable(divider_0_enable),
                 .divider_input_1(divider_input_1),
                 .divider_input_2(divider_input_2),
-                .divider_0_result(divider_0_result),
-                .divider_0_remainder(divider_0_remainder),
-                .divider_0_busy(divider_0_busy)
+                .divider_result(divider_0_result),
+                .divider_remainder(divider_0_remainder),
+                .divider_busy(divider_0_busy)
             );
             //----------------------------------
             // End of Circuit 1 instantiation
@@ -720,19 +725,32 @@ module sample_divider
     input wire enable,
     input wire [31 : 0] divider_input_1,
     input wire [31 : 0] divider_input_2,
-    output reg [31 : 0] divider_0_result,
-    output reg [31 : 0] divider_0_remainder,
-    output reg divider_0_busy
+    output reg [31 : 0] divider_result,
+    output reg [31 : 0] divider_remainder,
+    output reg divider_busy
 );
+    reg [2 : 0] count;
+    
     always @(posedge clk) 
     begin
-        if (enable)
+        if (~enable)	
+        begin
+            count <= 3'd0;
+            divider_busy <= 1'b0;
+        end
+        
+        else if (count == 3'd7)
+        begin
+            count <= 3'd0;
+            divider_result <= divider_input_1 / divider_input_2;
+            divider_remainder <= divider_input_1 % divider_input_2;
+            divider_busy <= 1'b0;
+        end
+        
+        else
         begin 
-            divider_0_busy = 1;
-            repeat (8) @(posedge clk);
-            divider_0_result    = divider_input_1 / divider_input_2;
-            divider_0_remainder = divider_input_1 % divider_input_2;
-            divider_0_busy = 0;
+            divider_busy <= 1;
+            count <= count + 3'd1;
         end 
     end
 endmodule

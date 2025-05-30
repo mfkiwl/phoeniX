@@ -13,7 +13,7 @@ make dhrystone
 ```
 Make sure to set the `MARCH` parameter in the Makefile correctly. Currently available options are: `rv32i`, `rv32e`, `rv32im` and `rv32em`.
 
-Dhrystone Result on phoeniX (RV32I):
+Dhrystone Result on phoeniX (RV32I) V0.4:
 ```
 Number_Of_Runs: 100
 User_Time: 32846 cycles, 29341 insn
@@ -22,13 +22,22 @@ Dhrystones_Per_Second_Per_MHz: 3044
 DMIPS_Per_MHz: 1.732
 ```
 
-Dhrystone Result on phoeniX (RV32IM):
+Dhrystone Result on phoeniX (RV32IM) V0.4:
 ```
 Number_Of_Runs: 100
 User_Time: 31248 cycles, 26442 insn
 Cycles_Per_Instruction: 1.181
 Dhrystones_Per_Second_Per_MHz: 3200
 DMIPS_Per_MHz: 1.821
+```
+
+Dhrystone Result on phoeniX (RV32I) V0.5:
+```
+Number_Of_Runs: 100
+User_Time: 35547 cycles, 29341 insn
+Cycles_Per_Instruction: 1.211
+Dhrystones_Per_Second_Per_MHz: 2813
+DMIPS_Per_MHz: 1.601
 ```
 
 </div>

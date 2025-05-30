@@ -7,18 +7,16 @@ Responsible for generating target address of BRANCH, JUMP and LOAD/STORE instruc
 |:---------:|:--------:|:---------:|:------------------------------:|
 |   opcode  |  [6 : 0] |   input   |   Opcode field of instruction  |
 |    rs1    | [31 : 0] |   input   |        Source register 1       |
-|     PC    | [31 : 0] |   input   |  Instruction's Program Counter |
-| immediate | [31 : 0] |   input   | Immediate field of instruction |
-|  address  | [31 : 0] |   output  |  Target Address of instruction |
+|     PC    | [31 : 0] |   input   |  Program Counter				|
+| immediate | [31 : 0] |   input   | Immediate value 				|
+|  address  | [31 : 0] |   output  |  Jump and Branch Target 		|
 
 ## Fetch Unit
 Logic required for fetching instructions from memory and setting value of the program counter
 |  Signal                     |   Width  | Direction |                 Description               |
 |:---------------------------:|:--------:|:---------:|:-----------------------------------------:|
 |  enable                     |     1    |   input   |    Enable signal to control fetch action  |
-|    PC                       | [31 : 0] |   input   |        Instruction's Program Counter      |
-| jump_branch_address         | [31 : 0] |   input   |        Instruction's Program Counter      |
-| jump_branch_enable          |     1    |   input   |        Instruction's Program Counter      |
+|    PC                       | [31 : 0] |   input   |        Program Counter      				 |
 | next_PC                     | [31 : 0] |   output  |        Value to latch on PC register      |
 | memory_interface_enable     |     1    |   output  | Enabling data transfer with memory        |
 | memory_interface_state      |     1    |   output  | Memory interface state (READ/WRITE)       |
@@ -33,13 +31,10 @@ Module responsible for detecting true data dependency detection and forwarding l
 |     source_index    |  [4 : 0] |   input   |     Index of data source requiring forwarding     |
 | destination_index_1 |  [4 : 0] |   input   |   Index of the first data option for forwarding   |
 | destination_index_2 |  [4 : 0] |   input   |   Index of the second data option for forwarding  |
-| destination_index_3 |  [4 : 0] |   input   |   Index of the third data option for forwarding   |
 |        data_1       | [31 : 0] |   input   |   Value of the first data option for forwarding   |
 |        data_2       | [31 : 0] |   input   |   Value of the second data option for forwarding  |
-|        data_3       | [31 : 0] |   input   |   Value of the third data option for forwarding   |
 |       enable_1      |     1    |   input   |  Validity of the first data option for forwarding |
 |       enable_2      |     1    |   input   | Validity of the second data option for forwarding |
-|       enable_3      |     1    |   input   |  Validity of the third data option for forwarding |
 |    forward_enable   |     1    |   output  |  Enable signal for controlling forwarding action  |
 |     forward_data    | [31 : 0] |   output  |         Data to be forwarded to the source        |
 
@@ -68,8 +63,8 @@ Responsible for decomposing an instruction to separate fields
 |   read_enable_1  |     1    |   output  |       Correctness of reading first source register from register file       |
 |   read_enable_2  |     1    |   output  |       Correctness of reading second source register from register file      |
 |   write_enable   |     1    |   output  |         Correctness of writing destination register to register file        |
-|  read_enable_csr |     1    |   output  |   Correctness of reading control status register from CSR register file     |
-| write_enable_csr |     1    |   output  |   Correctness of writing control status register to CSR register file       |
+|  csr_read_enable |     1    |   output  |   Correctness of reading control status register from CSR register file     |
+| csr_write_enable |     1    |   output  |   Correctness of writing control status register to CSR register file       |
 
 ## Jump Branch Unit
 Condition checker and decision maker for individual branch types and jump instruction 
@@ -101,7 +96,7 @@ Module responsible for Load and Store operations for aligned addresses and words
 A parametrized register file suitable for general purpose and control-status registers benefiting from 2 read ports and 1 write port
 |     Signal    |  Width   | Direction |                        Description                        |
 |:-------------:|:--------:|:---------:|:---------------------------------------------------------:|
-|      CLK      |     1    |   input   | Clock signal for synchronization of register's flip-flops |
+|      clk      |     1    |   input   | Clock signal for synchronization of register's flip-flops |
 |     reset     |     1    |   input   |      Reset signal to set all regsiter values to zero      |
 | read_enable_1 |     1    |   input   |       Enable signal for first read port of the file       |
 | read_enable_2 |     1    |   input   |       Enable signal for second read port of the file      |
@@ -117,16 +112,19 @@ A parametrized register file suitable for general purpose and control-status reg
 
 <div align="justify">
 
-Platform’s execution engine which is designed for an RV32IEM core, has three main modules: `Arithmetic Logic Unit`, `Multiplier Unit` and `Divider Unit`. These three modules are designed in a novel way which gives designers the ability to **change or add executer circuits** in the function units, without any need to change the control logic in the modules. Obviously there are some guidelines for this kind of transformations and changes like this for the platform, but in the end it is very simple to do and needs lowest requirements and changes.
+Platform’s execution engine which is designed for an RV32IEM core, has three main modules: `Arithmetic Logic Unit`, `Multiplier Unit` and `Divider Unit`. These three modules are designed in a novel way which gives designers the ability to **change or add arithmetic circuits** in the function units, without any need to change the control logic in the modules. There are guidelines for this kind of transformations and changes like this for the platform, but in the end it is very simple to do and needs minimal changes.
+
 For each execution unit, there is one special purpose register defined named as `alucsr`, `mulcsr` and `divcsr`. These Control Status Registers (CSRs) are designed in a way to provide phoeniX’s special features for approximate computing. You can see the structure of the mentioned registers in the following table:
 
 | CSR [31 : 16] | CSR [15 : 12]      | CSR [11 : 8] | CSR [7 : 3] | CSR [2 : 1]    | CSR [0]              |
 | ------------- | ------------------ | ------------ | ----------- | -------------- | -------------------- |
 | Error Control | Truncation Control | Custom 2     | Custom 1    | Circuit Select | Enable Approximation |
 
-Each entry in these registers is dedicated to a specific feature, aiming to assist users and designers in demonstrating advancements in their respective fields of study and work. The ultimate objective of these features, which contributes to the overall goal of this project, is to enhance user accessibility in programming and provide designers with greater flexibility in implementations, and achieving this target with the integration of **precise circuits’ accuracy and the efficiency** and potential **energy savings offered by approximate circuits**.
+ - Each entry in these registers is dedicated to a specific feature, aiming to assist users and designers in demonstrating advancements in their respective fields of study and work. 
 
-These three registers are mapped as `0x800 (alucsr)`, `0x801(mulcsr)` and `0x802 (divcsr)` in platform’s register file. Here is a sample RISC-V assembly code included to show the programming convention of the phoeniX using an approximate arithmetic circuit which also the error level is configurable in the circuit.
+ - The ultimate objective of these features, which contributes to the overall goal of this project, is to enhance user accessibility in programming and provide designers with greater flexibility in implementations, and achieving this target with the integration of **precise circuits’ accuracy and the efficiency** and potential **energy savings offered by approximate circuits**.
+
+These three registers are mapped as `0x800 (alucsr)`, `0x801(mulcsr)` and `0x802 (divcsr)` in platform’s control status register file. A sample RISC-V assembly code is provided below to show the programming convention of the phoeniX using an approximate arithmetic circuit which supports multiple error levels.
 
 ```asm
 factorial: 	add     a4,     a0,     zero
@@ -146,7 +144,8 @@ loop: 		mul     a4,     a3,     a4
 
 ## Arithmetic Logic Unit
 
-Arithemtic logic unit with support for `I_TYPE` and `R_TYPE` instructions plus `U_TYPE` and return address calculations for `J-TYPE`. ALU in phoeniX includes 2 adders:
+Arithemtic logic unit with support for `I_TYPE` and `R_TYPE` instructions. Integrate ALU adder circuits include:
+
 - Error Configurable Very Fast Approximate Carry Select Adder (phoeniX original design)
 - Accurate Kogge Stone Adder (Very Fast)
 
@@ -156,7 +155,6 @@ Arithemtic logic unit with support for `I_TYPE` and `R_TYPE` instructions plus `
 |   funct3                    |  [2 : 0] |   input   |      Instruction family's first function     |
 |   funct7                    |  [6 : 0] |   input   |      Instruction family's second function    |
 |   control_status_register   | [31 : 0] |   input   | ALU's special CSR (for circuit select feature and error configuration) |
-|     PC                      | [31 : 0] |   input   |         Instruction's Program Counter        |
 |     rs1                     | [31 : 0] |   input   |               Source register 1              |
 |     rs2                     | [31 : 0] |   input   |               Source register 2              |
 |  immediate                  | [31 : 0] |   input   |         Immediate field of instruction       |
@@ -186,6 +184,7 @@ Accuracy comparison for the 8-bit, with 4 bit error control version of Error Con
 ## Multiplier Unit
 
 Multiplier unit with integrated approximate circuit:
+
 - Low-Power, High-Speed, Area-Efficient and Error Configurable Approximate Multiplier (phoeniX original design)
 
 |   Signal                    |   Width  | Direction |                  Description                                               |
@@ -195,13 +194,12 @@ Multiplier unit with integrated approximate circuit:
 |   funct3                    |  [2 : 0] |   input   |      Instruction family's first function                                   |
 |   funct7                    |  [6 : 0] |   input   |      Instruction family's second function                                  |
 |   control_status_register   | [31 : 0] |   input   | MUL's special CSR (for circuit select feature and error configuration)     |
-|     PC                      | [31 : 0] |   input   |         Instruction's Program Counter                                      |
 |     rs1                     | [31 : 0] |   input   |               Source register 1                                            |
 |     rs2                     | [31 : 0] |   input   |               Source register 2                                            |
 | multiplier_unit_busy        |     1    |   output  |Multiplier unit's busy signaling for correct timing and stalling in pipeline|
 | multiplier_unit_output      | [31 : 0] |   output  |      Result of multiplier unit's operations on selected operands           |
 
-NMED, MRED and ER for 7-bit version of the purposed approximate dynamic error configurable multiplier:
+NMED, MRED and ER for 7-bit version of the proposed dynamic error configurable multiplier:
 
 | Error Level | NMED | MRED | ER    |
 | ----------- | ---- | ---- | ----- |
@@ -225,7 +223,6 @@ Divider unit with integrated approximate circuit:
 |   funct3                    |  [2 : 0] |   input   |      Instruction family's first function                                   |
 |   funct7                    |  [6 : 0] |   input   |      Instruction family's second function                                  |
 |   control_status_register   | [31 : 0] |   input   | DIV's special CSR (for circuit select feature and error configuration)     |
-|     PC                      | [31 : 0] |   input   |         Instruction's Program Counter                                      |
 |     rs1                     | [31 : 0] |   input   |               Source register 1                                            |
 |     rs2                     | [31 : 0] |   input   |               Source register 2                                            |
 | divider_unit_busy           |     1    |   output  |  Divider unit's busy signaling for correct timing and stalling in pipeline |

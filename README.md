@@ -1,7 +1,7 @@
 ![License](https://img.shields.io/github/license/phoeniX-Digital-Design/AssembleX?color=dark-green)
 ![GCC Test](https://img.shields.io/badge/GCC_tests-passed-dark_green)
-![Version](https://img.shields.io/badge/Version-0.4.1-blue)
-![ISA](https://img.shields.io/badge/RV32-IEM_extension-blue)
+![Version](https://img.shields.io/badge/Version-0.5-blue)
+![ISA](https://img.shields.io/badge/RV32-I/EM_extension-blue)
 
 <picture>
     <source media="(prefers-color-scheme: dark)" srcset="https://github.com/phoeniX-Digital-Design/phoeniX/blob/main/Documents/Images/phoenix_full_logotype_bb.png" width="530" height="150" style="vertical-align:middle">
@@ -10,20 +10,15 @@
 
 <div align="justify">
  
-The **phoeniX** RISC-V HW/SW platform inludes an `RV32IEM` core designed in Verilog HDL based on the 32-bit Base Instrcution Set of [RISC-V Instruction Set Architecture](http://riscv.org/) V2.2, with specialized features supported for **approximate computing** techniques.The **phoeniX** is a novel modular and extensive RISC-V processor for approximate computing.
+The **phoeniX** RISC-V platform includes a partially-reconfigurable `RV32I/EM` core designed based on the 32-bit Base Instrcution Set of [RISC-V Instruction Set Architecture](http://riscv.org/) V2.2, with specialized features supporting approximate arithmetic hardware implementations.
 
-The platform enables integration of approximate arithmetic circuits at the core level, with different structures, accuracies, timings and etc. without any need for modification in rest of the core, especially in the control logic. This allows configurable trade-offs between speed, accuracy and power consumption based on application requirements.
+This platform enables simplified adaption of faulty arithmetic circuits within the core, with different structures, accuracies, timings and etc., without fragmentizing the datapath. This allows configurable trade-offs between latency, accuracy and power consumption based on application requirements.
 
 </div>
 
 <div align="justify">
 
-This repository contains an open source RISC-V embedded core, including RTL codes and assistant softwares, under the [GNU V3.0 license](https://en.wikipedia.org/wiki/GNU_General_Public_License) and is free to use. The platform's technical specifications are published under supervision of [IUST Electronics Research Center](http://idea.iust.ac.ir/content/76317/phoeniX-POINTS--A-RISC-V-Platform-for-Approximate-Computing-Version-0.1-Technical-Specifications).
-
-
-- Publications:
-
-If you use these works in your research, please cite the following papers:
+This repository contains an open source RISC-V embedded core, including RTL, synthesis scripts, and assistant software, under the [GNU V3.0 license](https://en.wikipedia.org/wiki/GNU_General_Public_License) and is free to use. If you use these works in your research, please cite the following papers:
 
 <details>
 <summary><b>Evaluation of Run-Time Energy Efficiency using Controlled Approximation in a RISC-V Core [2024]</b></summary>
@@ -86,11 +81,6 @@ Permission to use, copy, modify, and/or distribute this software for any purpose
 
 </div>
 
-- Designed By: [Arvin Delavari](https://github.com/ArvinDelavari) and [Faraz Ghoreishy](https://github.com/FarazGhoreishy)
-- Contact us: arvin_delavari@elec.iust.ac.ir - faraz_ghoreishy@elec.iust.ac.ir
-- Iran University of Science and Technology, Summer 2023 - Present
-
-
 <a href="https://next.ossinsight.io/widgets/official/analyze-repo-stars-map?activity=stars&repo_id=677643796" target="_blank" style="display: block" align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="https://next.ossinsight.io/widgets/official/analyze-repo-stars-map/thumbnail.png?activity=stars&repo_id=677643796&image_size=auto&color_scheme=dark" width="721" height="auto">
@@ -102,35 +92,37 @@ Permission to use, copy, modify, and/or distribute this software for any purpose
 
 - [Features](#Features)
 - [Directory Map](#Directory-Map)
-- [Core's Structure](#Core-Structure)
+- [Core Structure](#Core-Structure)
 - [Memory Interface](#Memory-Interface)
 - [Building RISC-V Toolchain](#Building-RISC-V-Toolchain)
 - [Execution Flow](#Execution-Flow)
-- [Synthesis Result](#Synthesis-Result)
+- [Implementation](#Implementation)
 
 
 ## Features
 <div align="justify">
 
- - **Optimized 3 stage pipeline**
+  - Architecture
+    - RV32I/EM, 4-stage, in-order, and single issue pipeline
+    - Partially-reconfigurable execution engine (ALU, MUL, DIV) 
+    - A novel control mechanism over trade-offs between *accuracy* and *computational efficiency*
+    - Compatible with dynamic error-adjustable arithmetic hardware
+    - Automated dynamic power management ( ONGOING )
+  
+  - Software
+    - Compliant with RISC-V GCC 8.3.0 compiler 
+    - AssembleX: phoeniX's RISC-V assembly software assistant
+    - Dedicated approximate computing library for fault-tolerant applications ( ONGOING )
+    
+  - RTL Simulation
+    - Icarus Verilog
+    - Verilator
+    - ModelSim
+    - Compatible with FPGA proprietary (commercial) and open-source toolchains
 
- The 3-stage pipeline in a processor improves instruction throughput by dividing execution into sequential stages with minimal internal fragmentation. By incorporating data forwarding and bypassing options (forwarding data from execution, memory or writeback stage) the pipeline minimizes stalls caused by data hazards.
-
- - **Modularity and Extensiveness**
-
-Modularity in design promotes flexibility, reusability, scalability, simpler testing, and system reliability by breaking down the design into smaller, independent modules that form the building blocks. Each of these blocks can be designed, optimized, and tested separately. This approach offers several benefits. 
-
-First, modularity increases flexibility, as individual modules can be easily interchanged without requiring modifications to the main core. This enables customization and adaptation to different application requirements (e.g. adding an execution unit module to the design would cause changes to a centralized control unit, but in this methodolgy, designing `self-controlled execution units` would lead to a much simple integration of the module to the main core).
-
-Secondly, modularity aids in design verification and testing, as individual modules can be tested in isolated testbenches, simplifying the debugging process and reducing the overall development time. 
-
-Additionally, modular designs can lead to improved overall system reliability, as faults and failures in one module are less likely to affect the functionality of the entire processor.
-
-- **A Novel Platform for Approximate Computing**
-
-The phoeniX RISC-V core introduces novel features that will help the emerging field of approximate computing. With its extensive architecture, phoeniX presents a reconfigurable platform for exploring and implementing hardware approximation methodologies for HW/SW co-design. 
-
-This platform enables researchers and developers to delve into the field realm of approximate computing, where trade-offs between *accuracy* and *computational efficiency* can be carefully balanced. By offering a range of specialized instructions, optimized datapaths, and adaptable precision controls, phoeniX empowers users to use the help of approximation in diverse `fualt-tolerant application` domains, opening the way for advancements in energy-efficient computing, ML, DL, Neural Networks, image processing, and etc.
+  - Synthesis
+    - Compliant with proprietary (commercial) and open-source tools
+    - Sample RTL-to-GDS scripts provided
 
 </div>
 
@@ -146,25 +138,22 @@ repository/
     │   ├── phoeniX_Documentation/   
     │   └── RISCV_Original_Documents/
     ├── Dhrystone/
-    |   ├── dhry.h
-    │   ├── dhry_1.c
-    │   ├── dhry_2.c
     │   ├── dhrytone.log 
-    │   ├── dhrytone_firmware.hex 
-    │   └── dhrytone_firmware.txt
+    │   ├── dhrytone_rv32i_firmware.hex 
+    │   └── dhrytone_rv32im_firmware.hex
+    │   └── ...
     ├── Features/
     │   ├── AXI4-Lite/
     │   ├── Branch_Prediction/
-    │   ├── Clock_Genrator/
+    │   ├── Clock_Generator/
     │   └── ...
     ├── Synthesis/
-    │   ├── TSMC_018um/
+    │   ├── OSU180/
     │   │   ├── layout/
     │   │   ├── synthesis/
     │   │   ├── log/
     │   │   └── ...
-    │   ├── DC_45nm
-    │   └── Vivado_2022
+    │   └── FreePDK45
     ├── Modules/
     │   ├── Address_Generator.v
     │   ├── Arithmetic_Logic_Unit.v
@@ -197,19 +186,17 @@ repository/
     ├── phoeniX.vvp
     ├── phoeniX.vcd
     ├── phoeniX.gtkw
-    ├── AssembleX_V1.0.py
+    ├── AssembleX.py
     └── Makefile
 </pre>
 
 ## Core Structure
 <div align="justify">
 
-The repository contains a collection of Verilog modules that build up the phoeniX RISC-V processor. These building block modules are included in `\Modules` directory.
-Each modules was designed with concepts of modularity and distributed-control in mind. This deliberate approach allows for effortless replacement and configuration of individual building blocks, resulting in a simplified process. This will help designers with integrating new modules (especially arithmetic and execution units) within the processor.
+The repository contains a collection of building blocks of the phoeniX, included in `\Modules` directory. Modules are designed based on distributed-control logic. This deliberate approach allows designers to replace and configure individual building blocks especially arithmetic and execution units within the processor. 
 
-The proposed platform enables integration of approximate arithmetic units at the core level, with different structures, accuracies, timings and etc. without any need for editing rest of the core, especially in control logic. This platform is allowing configurable trade-offs between speed, accuracy and energy consumption based on specific application requirements. 
-
-This repository includes detailed documentation, user manual, and developer guidelines for future works and updates. These resources make it extremely easy for users to execute `C/C++` and `ASM` code using the standard `RISC-V GCC toolchain` on the processor, and helps developers to understand its structure and architecture, in order to update and validate new designs using the base processor, or adding and testing approximate arithmetic circuits on the core, without any need of changes in other parts of the processor such as control logics and etc.
+<!-- TO DO -->
+This repository includes detailed documentation, user manual, and developer guidelines for future works and updates. These resources make it easy for users to execute `C/C++` and `ASM` code using the standard `RISC-V GCC toolchain` on the processor, and helps developers to understand its structure and architecture, in order to update and validate new designs using the base processor, or adding and testing approximate arithmetic circuits on the core, without any need of changes in other parts of the processor such as control logics and etc.
 
 </div>
 
@@ -218,23 +205,23 @@ This repository includes detailed documentation, user manual, and developer guid
 | Module                        | Description                                                                                   |
 | ----------------------------- | --------------------------------------------------------------------------------------------- |
 | `Address_Generator`           | Generating address for BRANCH, JUMP and LOAD/STORE instructions                               |
-| `Arithmetic_Logic_Unit`       | ALU with support for `I_TYPE` and `R_TYPE` RISC-V instructions                                |
-| `Control_Status_Unit`         | CSR instructions and custom CSRs for approximate computing acceleration of the phoeniX        |
-| `Divider_unit`                | Divider unit with a modular design (Default module: Error configrable non-restoring divider)  |
+| `Arithmetic_Logic_Unit`       | ALU with support for `I_TYPE` and `R_TYPE` instructions                                       |
+| `Control_Status_Unit`         | CSR instructions and custom CSRs for the partially-reconfigurable execution engine            |
+| `Divider_unit`                | Divider unit with a modular design (Default module: Error configurable non-restoring divider) |
 | `Fetch_Unit`                  | Instruction Fetch logic and program counter addressing                                        | 
-| `Hazard_Forward_Unit`         | Hazard detection and data forwarding logic in pipelined processor                             |
+| `Hazard_Forward_Unit`         | Hazard detection and data forwarding logic                                                    |
 | `Immediate_Generator`         | Generating immediate values according to instructions type                                    |
-| `Instruction_Decoder`         | Decoding instructions and extracting `opcode`, `funct` and `imm` fields                       |
-| `Jump_Branch_Unit`            | Condition checking for all branch instructions                                                |
+| `Instruction_Decoder`         | Decoding instructions and extracting control fields (i.e., `opcode`, `funct`)                 |
+| `Jump_Branch_Unit`            | Decision-making on all branch instructions                                                    |
 | `Load_Store_Unit`             | Load and Store operations for aligned addresses and wordsize management                       |
 | `Multiplier_Unit`             | Multiplier unit with a modular design (Default module: Fast, low-power approximate multiplier)|
 | `Register_File`               | Parametrized register file suitable for GP registers and CSRs (2 read & 1 write ports)        |
-
+| `Register_Loading_Table`      | Contains memory source addresses for values loaded in GP registers                            |
 
 The `phoeniX.v` contains the main phoeniX RISC-V core and is included in the top directory of this repo:
 | Module                        | Description                                                                  |
 | ----------------------------- | ---------------------------------------------------------------------------- |
-| `phoeniX`                     | phoeniX 32 bit RISC-V core (RV32IEM) top module                              |
+| `phoeniX`                     | phoeniX core (RV32I/EM) top module                                           |
 | `phoeniX_Testbench`           | Testbench module including main core, memory and interface logic             |
 
 
@@ -245,19 +232,17 @@ The processor currently supports 32-bit word memories with synchronized access t
 
 ![Alt text](https://github.com/phoeniX-Digital-Design/phoeniX/blob/main/Documents/Images/frame_mask_table.png "Frame Mask Values on different aligned memory accesses")
 
-Designed with the influence of Harvard architecture, the native memory interface ensures the elimination of structural hazard occurrences while accessing memory. It incorporates two distinctive address and data buses, specifically dedicated to instructions and data. As can be seen from the top module's port instantiations, both these memory interfaces have a data, address and control bus.
-
 </div>
 
 > [!WARNING]\
-> Unaligned Memory Accesses: phoeniX Load Store Unit does not support misaligned accesses. At the moment we are working to add support accesses that are not aligned on word boundaries by implementing the procedure with multiple separate aligned accesses requiring  additional clock cycles.
+> Unaligned Memory Accesses: phoeniX Load Store Unit does not support misaligned accesses. At the moment we are working to add support accesses that are not aligned on word boundaries by implementing the procedure with multiple separate aligned accesses requiring additional clock cycles.
 
 ## Building RISC-V Toolchain
 <div align="justify">
  
 In order to be able to compile your source files and run on the core, you need to install `RISC-V GNU Compiler Toolchain`. You can follow the installation process from the [riscv-gnu-toolchain](https://github.com/riscv-collab/riscv-gnu-toolchain) repository or use the scripts provided in the original RISC-V repositories and [riscv-tools](https://github.com/riscv/riscv-tools). The default settings in the original repos build scripts will build a compiler, assembler and linker that can target any RISC-V ISA.
 
-You can also use the provided shell script in `/Setup` directory. All shell scripts and Makefiles provided in this repository target `Ubuntu 20.04` unless otherwise specified. Simply run the `setup.sh` from your terminal, and it will automatically install all required prequistes.
+You can also use the provided shell script in `/Setup` directory. All shell scripts and Makefiles provided in this repository target `Ubuntu 20.04` unless otherwise specified. Simply run the `setup.sh` from your terminal, and it will automatically install all required prerequisites.
 
 </div>
 
@@ -315,7 +300,7 @@ In order to run your own code on phoeniX, create a directory named to your proje
 ```shell
 make code project=my_project
 ```
-Provided that you name your project sub-directory correctly and the RISC-V Toolchain is configured without any troubles on your machine, the Makefile will compile all your source files separately, then using the linker script `riscv.ld` provided in `/Firmware` it links all the object files necessary together and creates `firmware.elf`. It then creates `start.elf` which is built from `start.s` and `start.ld` and concatenate these together and finally forms the `my_project_firmware.hex`. After that, `iverilog` and `gtkwave` are used to compile the design and view the selected waveforms.
+Provided that you name your project sub-directory correctly and the RISC-V toolchain is configured without any troubles on your machine, the Makefile will compile all your source files separately, then using the linker script `riscv.ld` provided in `/Firmware` it links all the object files necessary together and creates `firmware.elf`. It then creates `start.elf` which is built from `start.s` and `start.ld` and concatenate these together and finally forms the `my_project_firmware.hex`. After that, `iverilog` and `gtkwave` are used to compile the design and view the selected waveforms.
 
 > Further Configurations: The default testbench provided as `phoeniX_Testbench.v` is currently set to support up to 4MBytes of memory and the stack pointer register `sp` is configured accordingly. If you wish to change this, you need configure both the testbench and the initial value the `sp` is set to in `/Firmware/start.s`. If you wish to use other specific libraries and header files not provided in `/Firmware` please beware you may need to change linker scripts `riscv.ld` and `start.ld`.
 
@@ -328,7 +313,7 @@ Provided that you name your project sub-directory correctly and the RISC-V Toolc
 
 We have meticulously developed a lightweight and user-friendly software solution with the help of Python. Our execution assistant software, `AssembleX`, has been crafted to cater to the specific needs of Windows systems, enabling seamless execution of assembly code on the phoeniX processor. 
 
-This tool  enhances the efficiency of the code execution process, offering a streamlined experience for users seeking to enter the realm of assembly programming on pheoniX processor in a very simple and user-friendly way.
+This tool enhances the efficiency of the code execution process, offering a streamlined experience for users seeking to enter the realm of assembly programming on phoeniX processor in a very simple and user-friendly way.
 
 To run any of these sample projects simply run python `AssembleX.py sample` followed by the name of the project passed as a variable named project to the Python script.
 The input command format for the terminal follows the structure illustrated below:
@@ -339,7 +324,8 @@ For example:
 ```shell
 python AssembleX.py sample fibonacci
 ```
-After execution of this script, firmware file will be generated and this final file can be directly fed to our Verilog testbench. AssembleX automatically runs the testbench and calls upon gtkwave to display the selected signals in the waveform viewer application, gtkwave.
+After execution of this script, firmware file will be generated and this final file can be directly fed to our Verilog testbench. AssembleX automatically runs the testbench and calls upon Gtkwave to display the selected signals in the waveform viewer application.
+
 </div>
 
 #### Running Your Own Code
@@ -355,31 +341,31 @@ Provided that you name your project sub-directory correctly the AssembleX softwa
 
 </div>
 
-## Results
+## Implementation
 <div align="justify">
 
-The RTL has been crafted to enable the utilization of the processor as an implementable soft-core on Xilinx FPGA devices. The synthesis and implementation of the phoeniX processor was done using Synopsys Design Compiler, by the `NanGate 45nm` CMOS. By adhering the timing requirements, the processor can achieve a performance level of **500 - 620MHz**, enabling efficient execution of instructions and supporting the desired operational specifications in embedded processors.
+The RTL has been crafted to enable the utilization of the processor as an implementable soft-core on Xilinx FPGA devices. The ASIC synthesis and implementation of the phoeniX processor was done using proprietary (commercial) and open-source tool, utilizing the `FreePDK45`. By adhering the timing requirements, the processor can achieve max frequency of up to **500 - 620MHz**, enabling efficient execution of instructions and supporting the desired operational specifications in embedded solutions.
 
 ![phoeniX_45nm_Layout](https://github.com/phoeniX-Digital-Design/phoeniX/blob/main/Synthesis/DesignCompiler_NanGate45/layout_image/phoeniX_RV32IEM_layout_45nm.png)
 
 </div>
 
-| Dhyrstone Parameters         | phoeniX (RV32I) | phoeniX (RV32IM) |
-| ---------------------------- | --------------- | ---------------- |
-| CPI                          | 1.119           | 1.137            |
-| Dhrystones per Second per MHz| 3044            | 3324             |
-| DMIPS/MHz                    | 1.732           | 1.891            |
+| Dhyrstone Parameters         | phoeniX (RV32I) V0.4 | phoeniX (RV32IM) V0.4 | phoeniX (RV32I) V0.5 |
+| ---------------------------- | -------------------- | --------------------- | -------------------- |
+| CPI                          | 1.119                | 1.137                 | 1.211                |
+| Dhrystones per Second per MHz| 3044                 | 3324                  | 2813                 |
+| DMIPS/MHz                    | 1.732                | 1.891                 | 1.601                |
 
-<div align="justify">
 
-It is important to note that phoeniX is an embedded processor which is modular, and execution units are replaceable; This means that the following reported results of phoeniX core is extracted from the platform using its default (demo) execution engine, *including both accurate and approximate arithmetic hardware*.
+> [!NOTE]\
+> The following results of phoeniX core is extracted from the platform using its default (demo) execution engine, including both accurate and approximate arithmetic hardware.
 
-</div>
 
 | Processor                    | Max Frequency (MHz) | Technology Node (nm) | Architecture | Pipeline         |
 | ---------------------------- | ------------------- | -------------------- | ------------ | ---------------- |
-| phoeniX V0.4                 | 620                 | 45                   | RV32IEM      | 3-stage in order |
-| phoeniX V0.3                 | 500                 | 45                   | RV32IEM      | 3-stage in order |
+| phoeniX V0.5                 | 500                 | 45                   | RV32I/EM     | 4-stage in order |
+| phoeniX V0.4                 | 620                 | 45                   | RV32I/EM     | 3-stage in order |
+| phoeniX V0.3                 | 500                 | 45                   | RV32I/EM     | 3-stage in order |
 | phoeniX V0.2                 | 500                 | 45                   | RV32I        | 3-stage in order |
 | phoeniX V0.1                 | 220                 | 180                  | RV32I        | 5-stage in order |
-| phoeniXS6                    | > 100 (on FPGA)     | XC6SLX9              | RV32I        | 3-stage in order |
+| phoeniXS6                    | < 100 (on FPGA)     | XC6SLX9              | RV32I        | 3-stage in order |

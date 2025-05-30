@@ -2,7 +2,7 @@
 //  A Reconfigurable Embedded Platform for Approximate Computing and Fault-Tolerant Applications
 
 //  Description: Control Status Unit Module
-//  Copyright 2024 Iran University of Science and Technology. <phoenix.digital.electronics@gmail.com>
+//  Copyright 2025 Iran University of Science and Technology. <phoenix.digital.electronics@gmail.com>
 
 //  Permission to use, copy, modify, and/or distribute this software for any
 //  purpose with or without fee is hereby granted, provided that the above
@@ -12,27 +12,30 @@
 
 module Control_Status_Unit 
 (
-    input wire [ 6 : 0] opcode,
-    input wire [ 2 : 0] funct3,
+    input   wire [ 6 : 0] opcode,
+    input   wire [ 2 : 0] funct3,
 
-    input wire [31 : 0] CSR_in,
-    input wire [31 : 0] rs1,
-    input wire [ 4 : 0] unsigned_immediate,
+    input   wire [31 : 0] CSR_in,
+    input   wire [31 : 0] rs1,
+    input   wire [ 4 : 0] unsigned_immediate,
 
-    output reg [31 : 0] rd,
-    output reg [31 : 0] CSR_out
+    output  wire [31 : 0] rd,
+    output  wire [31 : 0] CSR_out
 );
 
-    always @(*) 
-    begin
-        case ({funct3, opcode})
-            {`CSRRW,  `SYSTEM}  : begin rd <= CSR_in;    CSR_out <= rs1; end                                        
-            {`CSRRS,  `SYSTEM}  : begin rd <= CSR_in;    CSR_out <= CSR_in | rs1; end                               
-            {`CSRRC,  `SYSTEM}  : begin rd <= CSR_in;    CSR_out <= CSR_in & ~rs1; end                              
-            {`CSRRWI, `SYSTEM}  : begin rd <= CSR_in;    CSR_out <= {27'b0, unsigned_immediate}; end                
-            {`CSRRSI, `SYSTEM}  : begin rd <= CSR_in;    CSR_out <= CSR_in | {27'b0, unsigned_immediate}; end       
-            {`CSRRCI, `SYSTEM}  : begin rd <= CSR_in;    CSR_out <= CSR_in & ~{27'b0, unsigned_immediate}; end         
-            default             : begin rd <= 32'bz;     CSR_out <= 32'bz; end
-        endcase
-    end
+    assign  rd  =   (   {funct3, opcode} == {`CSRRW,  `SYSTEM}  ||
+                        {funct3, opcode} == {`CSRRS,  `SYSTEM}  ||
+                        {funct3, opcode} == {`CSRRC,  `SYSTEM}  ||
+                        {funct3, opcode} == {`CSRRWI, `SYSTEM}  ||
+                        {funct3, opcode} == {`CSRRSI, `SYSTEM}  ||
+                        {funct3, opcode} == {`CSRRCI, `SYSTEM}  )   ?   CSR_in : 
+                        32'bz;
+
+    assign  CSR_out =   (   {funct3, opcode} == {`CSRRW,  `SYSTEM}  )   ?   rs1                                     :
+                        (   {funct3, opcode} == {`CSRRS,  `SYSTEM}  )   ?   CSR_in | rs1                            :
+                        (   {funct3, opcode} == {`CSRRC,  `SYSTEM}  )   ?   CSR_in & ~rs1                           :
+                        (   {funct3, opcode} == {`CSRRWI, `SYSTEM}  )   ?   {27'b0, unsigned_immediate}             :
+                        (   {funct3, opcode} == {`CSRRSI, `SYSTEM}  )   ?   CSR_in | {27'b0, unsigned_immediate}    :
+                        (   {funct3, opcode} == {`CSRRCI, `SYSTEM}  )   ?   CSR_in & ~{27'b0, unsigned_immediate}   :
+                        32'bz;
 endmodule

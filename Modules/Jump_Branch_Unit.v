@@ -2,7 +2,7 @@
 //  A Reconfigurable Embedded Platform for Approximate Computing and Fault-Tolerant Applications
 
 //  Description: Jump Branch Unit Module
-//  Copyright 2024 Iran University of Science and Technology. <phoenix.digital.electronics@gmail.com>
+//  Copyright 2025 Iran University of Science and Technology. <phoenix.digital.electronics@gmail.com>
 
 //  Permission to use, copy, modify, and/or distribute this software for any
 //  purpose with or without fee is hereby granted, provided that the above
@@ -12,36 +12,28 @@
 
 module Jump_Branch_Unit 
 (
-    input wire [ 6 : 0] opcode,
-    input wire [ 2 : 0] funct3,
-    input wire [ 2 : 0] instruction_type,
+    input   wire    [ 6 : 0] opcode,
+    input   wire    [ 2 : 0] funct3,
+    input   wire    [ 2 : 0] instruction_type,
 
-    input wire [31 : 0] rs1,
-    input wire [31 : 0] rs2,
+    input   wire    [31 : 0] rs1,
+    input   wire    [31 : 0] rs2,
       
-    output reg jump_branch_enable     
+    output  wire    jump_branch_enable     
 );
 
-    reg branch_enable;
-    reg jump_enable;
+    wire branch_enable;
+    wire jump_enable;
+    
+    assign branch_enable    =   (   (instruction_type == `B_TYPE) && (funct3 == `BEQ)   ) ?   ( ($signed(rs1) == $signed(rs2))  ? `ENABLE : `DISABLE ) :
+                                (   (instruction_type == `B_TYPE) && (funct3 == `BNE)   ) ?   ( ($signed(rs1) != $signed(rs2))  ? `ENABLE : `DISABLE ) :
+                                (   (instruction_type == `B_TYPE) && (funct3 == `BLT)   ) ?   ( ($signed(rs1) <  $signed(rs2))  ? `ENABLE : `DISABLE ) :
+                                (   (instruction_type == `B_TYPE) && (funct3 == `BGE)   ) ?   ( ($signed(rs1) >= $signed(rs2))  ? `ENABLE : `DISABLE ) :
+                                (   (instruction_type == `B_TYPE) && (funct3 == `BLTU)  ) ?   ( (rs1 <  rs2)                    ? `ENABLE : `DISABLE ) :
+                                (   (instruction_type == `B_TYPE) && (funct3 == `BGEU)  ) ?   ( (rs1 >= rs2)                    ? `ENABLE : `DISABLE ) :
+                                `DISABLE;
 
-    always @(*) 
-    begin
-            if (instruction_type == `B_TYPE)  
-                case (funct3)
-                    `BEQ  : begin if ($signed(rs1) == $signed(rs2))   branch_enable = `ENABLE; else  branch_enable = `DISABLE; end 
-                    `BNE  : begin if ($signed(rs1) != $signed(rs2))   branch_enable = `ENABLE; else  branch_enable = `DISABLE; end                    
-                    `BLT  : begin if ($signed(rs1) <  $signed(rs2))   branch_enable = `ENABLE; else  branch_enable = `DISABLE; end                    
-                    `BGE  : begin if ($signed(rs1) >= $signed(rs2))   branch_enable = `ENABLE; else  branch_enable = `DISABLE; end                    
-                    `BLTU : begin if (rs1 < rs2)                      branch_enable = `ENABLE; else  branch_enable = `DISABLE; end
-                    `BGEU : begin if (rs1 >= rs2)                     branch_enable = `ENABLE; else  branch_enable = `DISABLE; end                    
-                    default: branch_enable = `DISABLE;
-                endcase
-            else branch_enable = `DISABLE;
+    assign jump_enable = (opcode == `JAL || opcode == `JALR) ? `ENABLE : `DISABLE;
 
-            if (opcode == `JAL || opcode == `JALR) jump_enable = `ENABLE;
-            else jump_enable = `DISABLE;
-            
-            jump_branch_enable = jump_enable || branch_enable;
-    end 
+    assign jump_branch_enable = (jump_enable || branch_enable) ? `ENABLE : `DISABLE;
 endmodule

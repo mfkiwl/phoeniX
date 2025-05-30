@@ -2,7 +2,7 @@
 //  A Reconfigurable Embedded Platform for Approximate Computing and Fault-Tolerant Applications
 
 //  Description: Fetch Unit Module
-//  Copyright 2024 Iran University of Science and Technology. <phoenix.digital.electronics@gmail.com>
+//  Copyright 2025 Iran University of Science and Technology. <phoenix.digital.electronics@gmail.com>
 
 //  Permission to use, copy, modify, and/or distribute this software for any
 //  purpose with or without fee is hereby granted, provided that the above
@@ -12,22 +12,21 @@
 
 module Fetch_Unit
 (
-	input wire enable,                    
+	input   wire    enable,                    
 
-    input wire [31 : 0] pc, 
-    output reg [31 : 0] next_pc,  
+    input   wire    [31 : 0]    pc, 
+    output  wire    [31 : 0]    next_pc,  
     
     //////////////////////////////
     // Memory Interface Signals //
     //////////////////////////////
-
-    output reg  memory_interface_enable,
-    output reg  memory_interface_state,
-    output reg  [31 : 0]   memory_interface_address,
-    output reg  [ 3 : 0]   memory_interface_frame_mask
+    output  wire                memory_interface_enable,
+    output  wire                memory_interface_state,
+    output  wire    [31 : 0]    memory_interface_address,
+    output  wire    [ 3 : 0]    memory_interface_frame_mask
 );
 
-    wire [31 : 2] incrementer_result;
+    wire [29 : 0] incrementer_result;
 
     Incrementer 
     #(
@@ -39,25 +38,12 @@ module Fetch_Unit
         .result(incrementer_result)
     );
 
-    always @(*) 
-    begin
-        if (enable)
-        begin
-            memory_interface_enable = `ENABLE;
-            memory_interface_state = `READ;
-            memory_interface_frame_mask = 4'b1111;
-            memory_interface_address = pc;  
-            next_pc = {incrementer_result, 2'b00};    
-        end
-        else
-        begin
-            memory_interface_enable = `DISABLE;
-            memory_interface_state = 'bz;
-            memory_interface_frame_mask = 'bz;
-            memory_interface_address = 'bz;  
-            next_pc = 'bz;
-        end
-    end
+    assign  next_pc = (enable) ? {incrementer_result, 2'b00} : 32'bz;
+
+    assign  memory_interface_enable     =   (enable) ? `ENABLE  :   `DISABLE;
+    assign  memory_interface_state      =   (enable) ? `READ    :   1'bz;
+    assign  memory_interface_address    =   (enable) ? pc       :   32'bz;
+    assign  memory_interface_frame_mask =   (enable) ? 4'b1111  :   4'bz;
 endmodule
 
 module Incrementer
@@ -65,9 +51,10 @@ module Incrementer
     parameter LEN = 32
 )
 (
-    input   [LEN - 1 : 0]   value,
-    output  [LEN - 1 : 0]   result
+    input   wire [LEN - 1 : 0]  value,
+    output  wire [LEN - 1 : 0]  result
 );
+
     localparam COUNT = LEN / 4;
     `define SLICE  [(i * 4) + 3 : (i * 4)]
 
@@ -77,7 +64,7 @@ module Incrementer
     (
         .value(value[3 : 0]),
         .result(result[3 : 0]),
-        .Cout(carry_chain[0])
+        .C_out(carry_chain[0])
     );
 
     wire [3 : 0] incrementer_unit_result [1 : COUNT];
@@ -91,7 +78,7 @@ module Incrementer
             (
                 .value(value`SLICE),
                 .result(incrementer_unit_result[i]),
-                .Cout(incrementer_unit_carry_out[i])
+                .C_out(incrementer_unit_carry_out[i])
             );
 
             Mux_2to1_Incrementer MUX
@@ -110,16 +97,16 @@ endmodule
 
 module Incrementer_Unit 
 (
-    input  [3 : 0] value,
-    output [4 : 1] result,
-    output Cout
+    input   wire [3 : 0]    value,
+    output  wire [4 : 1]    result,
+    output  wire            C_out
 );
 
     assign result[1] = ~value[0];
     assign result[2] = value[1] ^ value[0];
     wire   C1   = value[1] & value[0];
     wire   C2   = value[2] & value[3];
-    assign Cout = C1 & C2;
+    assign C_out = C1 & C2;
     wire   C3   = C1 & value[2];
     assign result[3] = value[2] ^ C1;
     assign result[4] = value[3] ^ C3;
@@ -130,23 +117,12 @@ module Mux_2to1_Incrementer
     parameter LEN = 5
 ) 
 (
-    input [LEN - 1 : 0] data_in_1,        
-    input [LEN - 1 : 0] data_in_2,        
-    input select,                   
+    input   wire [LEN - 1 : 0]  data_in_1,        
+    input   wire [LEN - 1 : 0]  data_in_2,        
+    input   wire                select,                   
 
-    output reg [LEN - 1: 0] data_out            
+    output  wire [LEN - 1 : 0]  data_out            
 );
 
-    always @(*) 
-    begin
-        if (select)
-            data_out <= data_in_2;
-        else
-            data_out <= data_in_1;
-        // case (select)
-        //     1'b0: begin data_out = data_in_1; end
-        //     1'b1: begin data_out = data_in_2; end
-        //     default: begin data_out = {LEN{1'bz}}; end
-        // endcase
-    end
+    assign  data_out = (select) ? data_in_2 : data_in_1;
 endmodule

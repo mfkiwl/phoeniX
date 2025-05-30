@@ -83,6 +83,11 @@ module Multiplier_Unit
     reg  multiplier_2_enable;
     reg  multiplier_3_enable;
 
+    wire multiplier_0_enable_wire;
+    wire multiplier_1_enable_wire;
+    wire multiplier_2_enable_wire;
+    wire multiplier_3_enable_wire;
+
     wire [63 : 0] multiplier_0_result;
     wire [63 : 0] multiplier_1_result;
     wire [63 : 0] multiplier_2_result;
@@ -200,30 +205,30 @@ module Multiplier_Unit
             signal_zero:   
                 begin 
                     if (state_machine_enable) 
-                    begin reset_enable_signals <= 0; next_state <= signal_high; reset_controller_enable <= 0; end
+                    begin reset_enable_signals = 0; next_state = signal_high; reset_controller_enable = 0; end
                     else if (!state_machine_enable)
-                    begin reset_enable_signals <= 0; next_state <= signal_low;  reset_controller_enable <= 0; end
+                    begin reset_enable_signals = 0; next_state = signal_low;  reset_controller_enable = 0; end
                 end
             signal_high:   
                 begin 
                     if (state_machine_enable) 
-                    begin reset_enable_signals <= 1; next_state <= signal_low; reset_controller_enable <= 0; end
+                    begin reset_enable_signals = 1; next_state = signal_low; reset_controller_enable = 0; end
                     else if (!state_machine_enable)
-                    begin reset_enable_signals <= 0; next_state <= signal_low; reset_controller_enable <= 0; end 
+                    begin reset_enable_signals = 0; next_state = signal_low; reset_controller_enable = 0; end 
                 end
             signal_low:    
                 begin 
                     if (state_machine_enable) 
-                    begin reset_enable_signals <= 0; next_state <= signal_low; reset_controller_enable <= 1; end
+                    begin reset_enable_signals = 0; next_state = signal_low; reset_controller_enable = 1; end
                     else if (!state_machine_enable)
-                    begin reset_enable_signals <= 0; next_state <= signal_low; reset_controller_enable <= 0; end
+                    begin reset_enable_signals = 0; next_state = signal_low; reset_controller_enable = 0; end
                 end
             default:       
                 begin 
                     if (state_machine_enable) 
-                    begin reset_enable_signals <= 0; next_state <= signal_low; reset_controller_enable <= 1; end
+                    begin reset_enable_signals = 0; next_state = signal_low; reset_controller_enable = 1; end
                     else if (!state_machine_enable)
-                    begin reset_enable_signals <= 0; next_state <= signal_low; reset_controller_enable <= 0; end
+                    begin reset_enable_signals = 0; next_state = signal_low; reset_controller_enable = 0; end
                 end
         endcase
     end
@@ -237,7 +242,7 @@ module Multiplier_Unit
     reg circuits_input_enable = 0;
     wire enables_combine = (multiplier_0_enable | multiplier_1_enable | multiplier_2_enable | multiplier_3_enable);
     always @(posedge enables_combine) 
-    begin circuits_input_enable = 1; end
+    begin circuits_input_enable <= 1; end
     assign multiplier_input_1  = (circuits_input_enable) ? input_1 : 32'bz;
     assign multiplier_input_2  = (circuits_input_enable) ? input_2 : 32'bz;
     assign multiplier_accuracy = (circuits_input_enable) ? (control_status_register[9 : 3] | {7{~control_status_register[0]}}) : 7'bz;
@@ -279,8 +284,8 @@ module Multiplier_Unit
                 .enable(multiplier_0_enable_wire),
                 .multiplier_input_1(multiplier_input_1),
                 .multiplier_input_2(multiplier_input_2),
-                .multiplier_0_result(multiplier_0_result),
-                .multiplier_0_busy(multiplier_0_busy)
+                .multiplier_result(multiplier_0_result),
+                .multiplier_busy(multiplier_0_busy)
             );
             //-------------------------------
             // End of Circuit 2 instantiation
@@ -681,17 +686,30 @@ module sample_multiplier
     input wire enable,
     input wire [31 : 0] multiplier_input_1,
     input wire [31 : 0] multiplier_input_2,
-    output reg [63 : 0] multiplier_0_result,
-    output reg multiplier_0_busy
+    output reg [63 : 0] multiplier_result,
+    output reg multiplier_busy
 );
+    reg [2 : 0] count;
+
     always @(posedge clk) 
     begin
-        if (enable)
+        if (~enable)	
+        begin
+            count <= 3'd0;
+            multiplier_busy <= 1'b0;
+        end
+        
+        else if (count == 3'd7)
+        begin
+            count <= 3'd0;
+            multiplier_result <= multiplier_input_1 * multiplier_input_2;
+            multiplier_busy <= 1'b0;
+        end
+        
+        else
         begin 
-            multiplier_0_busy = 1;
-            repeat (5) @(posedge clk);
-            multiplier_0_result = multiplier_input_1 * multiplier_input_2;
-            multiplier_0_busy = 0;
+            multiplier_busy <= 1;
+            count <= count + 3'd1;
         end 
     end
 endmodule
